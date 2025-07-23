@@ -1,0 +1,44 @@
+{
+  "development": {
+    "username": "postgres",
+    "password": "Picole12!",
+    "database": "sorteio-db",
+    "host": "sorteio-db.cnu2kaoqsoe9.sa-east-1.rds.amazonaws.com",
+    "port": 5432,
+    "dialect": "postgres",
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
+    }
+  },
+  "test": {
+    "username": "postgres",
+    "password": "Picole12!",
+    "database": "sorteio-db",
+    "host": "sorteio-db.cnu2kaoqsoe9.sa-east-1.rds.amazonaws.com",
+    "port": 5432,
+    "dialect": "postgres",
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
+    }
+  },
+  "production": {
+    "username": "postgres",
+    "password": "Picole12!",
+    "database": "sorteio-db",
+    "host": "sorteio-db.cnu2kaoqsoe9.sa-east-1.rds.amazonaws.com",
+    "port": 5432,
+    "dialect": "postgres",
+    "dialectOptions": {
+      "ssl": {
+        "require": true,
+        "rejectUnauthorized": false
+      }
+    }
+  }
+}
