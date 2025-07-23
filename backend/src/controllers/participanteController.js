@@ -211,7 +211,7 @@ exports.getEstatisticasParticipante = async (req, res) => {
 
         const estatisticas = {
             totalBilhetes: participante.bilhetes.length,
-            bilhetesPagos: participante.bilhetes.filter(b => b.status === 'pago').length,
+            bilhetesVendidos: participante.bilhetes.filter(b => b.status === 'vendido').length,
             totalGasto: participante.totalGasto,
             rifasParticipadas: [...new Set(participante.bilhetes.map(b => b.rifaId))].length,
             ultimaParticipacao: participante.bilhetes.length > 0 ?

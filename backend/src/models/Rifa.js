@@ -42,6 +42,10 @@ const Rifa = sequelize.define('Rifa', {
         type: DataTypes.STRING,
         allowNull: true,
     },
+    chavePix: {
+        type: DataTypes.STRING,
+        allowNull: false,
+    },
 }, {
     tableName: 'Rifas',
 });

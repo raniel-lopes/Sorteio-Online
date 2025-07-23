@@ -1,5 +1,6 @@
 const { Op } = require('sequelize');
 const { Pagamento, Bilhete, Participante, Rifa, Usuario } = require('../models');
+const notificacaoService = require('../services/notificacaoService');
 
 // Listar pagamentos
 exports.getPagamentos = async (req, res) => {
@@ -152,6 +153,63 @@ exports.confirmarPagamento = async (req, res) => {
             );
         }
 
+        // 📧 ENVIAR EMAIL DE APROVAÇÃO
+        try {
+            // Buscar dados completos para o email
+            const dadosCompletos = await Pagamento.findByPk(id, {
+                include: [
+                    {
+                        model: Participante,
+                        attributes: ['nome', 'email', 'celular']
+                    },
+                    {
+                        model: Bilhete,
+                        include: [
+                            {
+                                model: Rifa,
+                                attributes: ['titulo', 'descricao']
+                            }
+                        ]
+                    }
+                ]
+            });
+
+            if (dadosCompletos && dadosCompletos.Participante && dadosCompletos.Participante.email) {
+                // Buscar todos os bilhetes do participante para este sorteio
+                const bilhetesParticipante = await Bilhete.findAll({
+                    where: { participanteId: pagamento.participanteId },
+                    include: [{ model: Rifa, attributes: ['titulo'] }]
+                });
+
+                const numerosReservados = bilhetesParticipante.map(b => b.numero);
+
+                const emailData = notificacaoService.criarEmailPagamentoAprovado({
+                    participante: {
+                        nome: dadosCompletos.Participante.nome,
+                        email: dadosCompletos.Participante.email,
+                        celular: dadosCompletos.Participante.celular
+                    },
+                    dadosPagamento: {
+                        rifaTitulo: dadosCompletos.Bilhete?.Rifa?.titulo || 'Sorteio',
+                        quantidadeBilhetes: bilhetesParticipante.length,
+                        numerosReservados: numerosReservados
+                    },
+                    valor: pagamento.valor
+                });
+
+                await notificacaoService.enviarEmail(
+                    dadosCompletos.Participante.email,
+                    emailData.assunto,
+                    emailData.conteudoHtml
+                );
+
+                console.log(`📧 Email de aprovação enviado para ${dadosCompletos.Participante.email}`);
+            }
+        } catch (emailError) {
+            console.error('⚠️ Erro ao enviar email de aprovação:', emailError.message);
+            // Não falhar a operação se o email falhar
+        }
+
         res.status(200).json({
             message: 'Pagamento confirmado com sucesso',
             pagamento
@@ -203,6 +261,65 @@ exports.cancelarPagamento = async (req, res) => {
             { where: { id: pagamento.bilheteId } }
         );
 
+        // 📧 ENVIAR EMAIL DE REJEIÇÃO
+        try {
+            // Buscar dados completos para o email
+            const dadosCompletos = await Pagamento.findByPk(id, {
+                include: [
+                    {
+                        model: Participante,
+                        attributes: ['nome', 'email', 'celular']
+                    },
+                    {
+                        model: Bilhete,
+                        include: [
+                            {
+                                model: Rifa,
+                                attributes: ['titulo', 'descricao']
+                            }
+                        ]
+                    }
+                ]
+            });
+
+            if (dadosCompletos && dadosCompletos.Participante && dadosCompletos.Participante.email) {
+                // Buscar todos os bilhetes que eram do participante para este sorteio
+                const bilhetesParticipante = await Bilhete.findAll({
+                    where: {
+                        rifaId: dadosCompletos.Bilhete?.rifaId,
+                        emailComprador: dadosCompletos.Participante.email
+                    }
+                });
+
+                const numerosReservados = bilhetesParticipante.map(b => b.numero);
+
+                const emailData = notificacaoService.criarEmailPagamentoRejeitado({
+                    participante: {
+                        nome: dadosCompletos.Participante.nome,
+                        email: dadosCompletos.Participante.email,
+                        celular: dadosCompletos.Participante.celular
+                    },
+                    dadosPagamento: {
+                        rifaTitulo: dadosCompletos.Bilhete?.Rifa?.titulo || 'Sorteio',
+                        quantidadeBilhetes: numerosReservados.length,
+                        numerosReservados: numerosReservados
+                    },
+                    valor: pagamento.valor
+                }, motivo || 'Não especificado');
+
+                await notificacaoService.enviarEmail(
+                    dadosCompletos.Participante.email,
+                    emailData.assunto,
+                    emailData.conteudoHtml
+                );
+
+                console.log(`📧 Email de rejeição enviado para ${dadosCompletos.Participante.email}`);
+            }
+        } catch (emailError) {
+            console.error('⚠️ Erro ao enviar email de rejeição:', emailError.message);
+            // Não falhar a operação se o email falhar
+        }
+
         res.status(200).json({
             message: 'Pagamento cancelado com sucesso',
             pagamento
@@ -229,10 +346,10 @@ exports.estornarPagamento = async (req, res) => {
             return res.status(400).json({ error: 'Apenas pagamentos confirmados podem ser estornados' });
         }
 
-        // Verificar se a rifa não foi sorteada
+        // Verificar se o sorteio não foi realizado
         const rifa = await Rifa.findByPk(pagamento.rifaId);
-        if (rifa.status === 'finalizada') {
-            return res.status(400).json({ error: 'Não é possível estornar pagamento de rifa finalizada' });
+        if (rifa.status === 'encerrada') {
+            return res.status(400).json({ error: 'Não é possível estornar pagamento de rifa encerrada' });
         }
 
         // Atualizar pagamento

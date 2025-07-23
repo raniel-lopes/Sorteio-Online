@@ -13,6 +13,7 @@ const Rifas = () => {
     const [editingRifa, setEditingRifa] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [hasSoldTickets, setHasSoldTickets] = useState(false);
 
     const [formData, setFormData] = useState({
         titulo: "",
@@ -23,6 +24,7 @@ const Rifas = () => {
         dataInicio: "",
         dataFim: "",
         imagemUrl: "",
+        chavePix: "",
         status: "ativa"
     });
 
@@ -69,10 +71,16 @@ const Rifas = () => {
             formDataToSend.append('descricao', formData.descricao);
             formDataToSend.append('premio', formData.premio);
             formDataToSend.append('valorBilhete', parseFloat(formData.valorBilhete));
-            formDataToSend.append('quantidadeNumeros', parseInt(formData.quantidadeBilhetes));
+
+            // Só enviar quantidadeNumeros se não for edição ou se não há bilhetes vendidos
+            if (!editingRifa || !hasSoldTickets) {
+                formDataToSend.append('quantidadeNumeros', parseInt(formData.quantidadeBilhetes));
+            }
+
             formDataToSend.append('dataInicio', formData.dataInicio);
             formDataToSend.append('dataFim', formData.dataFim);
             formDataToSend.append('status', formData.status);
+            formDataToSend.append('chavePix', formData.chavePix);
 
             // Adicionar imagem se foi selecionada
             if (formData.imagem) {
@@ -96,21 +104,47 @@ const Rifas = () => {
             setShowModal(false);
             resetForm();
         } catch (error) {
-            setError("Erro ao salvar rifa");
+            console.error('❌ Erro ao salvar rifa:', error);
+            if (error.response?.data?.error) {
+                setError(`Erro: ${error.response.data.error}`);
+            } else {
+                setError("Erro ao salvar rifa");
+            }
         }
     };
 
-    const handleEdit = (rifa) => {
+    const handleEdit = async (rifa) => {
         setEditingRifa(rifa);
+        // Para edição, sempre considerar que pode ter bilhetes vendidos
+        setHasSoldTickets(true);
+
+        // Função para formatar data para input date (yyyy-MM-dd)
+        const formatDateForInput = (dateString) => {
+            if (!dateString) return '';
+            try {
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return '';
+
+                const year = date.getUTCFullYear();
+                const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(date.getUTCDate()).padStart(2, '0');
+
+                return `${year}-${month}-${day}`;
+            } catch (error) {
+                return '';
+            }
+        };
+
         setFormData({
             titulo: rifa.titulo,
             descricao: rifa.descricao,
             premio: rifa.premio,
             valorBilhete: rifa.valorBilhete.toString(),
             quantidadeBilhetes: rifa.quantidadeBilhetes.toString(),
-            dataInicio: rifa.dataInicio,
-            dataFim: rifa.dataFim,
+            dataInicio: formatDateForInput(rifa.dataInicio),
+            dataFim: formatDateForInput(rifa.dataFim),
             imagemUrl: rifa.imagemUrl || "",
+            chavePix: rifa.chavePix || "",
             imagem: null,
             status: rifa.status
         });
@@ -138,17 +172,19 @@ const Rifas = () => {
             dataInicio: "",
             dataFim: "",
             imagemUrl: "",
+            chavePix: "",
             imagem: null,
             status: "ativa"
         });
         setEditingRifa(null);
+        setHasSoldTickets(false);
     };
 
     const getStatusColor = (status) => {
         switch (status) {
             case "ativa":
                 return "bg-green-100 text-green-800";
-            case "finalizada":
+            case "encerrada":
                 return "bg-gray-100 text-gray-800";
             case "cancelada":
                 return "bg-red-100 text-red-800";
@@ -308,11 +344,12 @@ const Rifas = () => {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="titulo">
                                 Título *
                             </label>
                             <input
                                 type="text"
+                                id="titulo"
                                 name="titulo"
                                 value={formData.titulo}
                                 onChange={handleInputChange}
@@ -321,10 +358,11 @@ const Rifas = () => {
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="descricao">
                                 Descrição *
                             </label>
                             <textarea
+                                id="descricao"
                                 name="descricao"
                                 value={formData.descricao}
                                 onChange={handleInputChange}
@@ -334,11 +372,12 @@ const Rifas = () => {
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="premio">
                                 Prêmio *
                             </label>
                             <input
                                 type="text"
+                                id="premio"
                                 name="premio"
                                 value={formData.premio}
                                 onChange={handleInputChange}
@@ -346,12 +385,31 @@ const Rifas = () => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                         </div>
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="chavePix">
+                                Chave PIX *
+                            </label>
+                            <input
+                                type="text"
+                                id="chavePix"
+                                name="chavePix"
+                                value={formData.chavePix}
+                                onChange={handleInputChange}
+                                required
+                                placeholder="Ex: email@gmail.com, CPF, CNPJ ou chave aleatória"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <p className="text-sm text-gray-500 mt-1">
+                                Chave PIX que será usada para receber os pagamentos desta rifa
+                            </p>
+                        </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="valorBilhete">
                                 Valor do Bilhete *
                             </label>
                             <input
                                 type="number"
+                                id="valorBilhete"
                                 name="valorBilhete"
                                 value={formData.valorBilhete}
                                 onChange={handleInputChange}
@@ -362,25 +420,35 @@ const Rifas = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="quantidadeBilhetes">
                                 Quantidade de Bilhetes *
+                                {editingRifa && hasSoldTickets && (
+                                    <span className="text-sm text-orange-600 ml-2">
+                                        (Bloqueado - há bilhetes vendidos)
+                                    </span>
+                                )}
                             </label>
                             <input
                                 type="number"
+                                id="quantidadeBilhetes"
                                 name="quantidadeBilhetes"
                                 value={formData.quantidadeBilhetes}
                                 onChange={handleInputChange}
                                 required
                                 min="1"
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                disabled={editingRifa && hasSoldTickets}
+                                className={`w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${editingRifa && hasSoldTickets ? 'bg-gray-100 cursor-not-allowed' : ''
+                                    }`}
+                                title={editingRifa && hasSoldTickets ? 'Não é possível alterar a quantidade quando há bilhetes vendidos' : ''}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="dataInicio">
                                 Data de Início *
                             </label>
                             <input
                                 type="date"
+                                id="dataInicio"
                                 name="dataInicio"
                                 value={formData.dataInicio}
                                 onChange={handleInputChange}
@@ -389,11 +457,12 @@ const Rifas = () => {
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="dataFim">
                                 Data de Fim *
                             </label>
                             <input
                                 type="date"
+                                id="dataFim"
                                 name="dataFim"
                                 value={formData.dataFim}
                                 onChange={handleInputChange}
@@ -402,11 +471,12 @@ const Rifas = () => {
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="imagem">
                                 Imagem do Produto
                             </label>
                             <input
                                 type="file"
+                                id="imagem"
                                 name="imagem"
                                 accept="image/*"
                                 onChange={(e) => {
@@ -437,10 +507,11 @@ const Rifas = () => {
                             )}
                         </div>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="status">
                                 Status *
                             </label>
                             <select
+                                id="status"
                                 name="status"
                                 value={formData.status}
                                 onChange={handleInputChange}
@@ -448,7 +519,7 @@ const Rifas = () => {
                                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                             >
                                 <option value="ativa">Ativa</option>
-                                <option value="finalizada">Finalizada</option>
+                                <option value="encerrada">Encerrada</option>
                                 <option value="cancelada">Cancelada</option>
                             </select>
                         </div>

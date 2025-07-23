@@ -19,9 +19,12 @@ const PagamentoPix = () => {
 
     const carregarRifa = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/api/publico/publica/${id}`);
+            const timestamp = Date.now(); // Evitar cache
+            const response = await fetch(`http://localhost:5000/api/publico/publica/${id}?t=${timestamp}`);
             if (response.ok) {
                 const data = await response.json();
+                console.log('🔍 Dados da rifa carregados:', data); // Debug
+                console.log('🔑 Chave PIX da rifa:', data.chavePix); // Debug
                 setRifa(data);
             }
         } catch (error) {
@@ -29,15 +32,6 @@ const PagamentoPix = () => {
         } finally {
             setLoading(false);
         }
-    };
-
-    const copiarCodigoPix = () => {
-        const codigoPix = rifa.codigoPix || `00020126580014BR.GOV.BCB.PIX01364290e3b2-5a4f-4d9e-8e7a-1234567890ab5204000053039865406${valorTotal.toFixed(2).replace('.', '')}5802BR5925SORTEIO ONLINE LTDA6009SAO PAULO62070503***6304`;
-
-        navigator.clipboard.writeText(codigoPix).then(() => {
-            setCopiado(true);
-            setTimeout(() => setCopiado(false), 3000);
-        });
     };
 
     if (loading) {
@@ -61,8 +55,6 @@ const PagamentoPix = () => {
             </div>
         );
     }
-
-    const codigoPix = rifa.codigoPix || `00020126580014BR.GOV.BCB.PIX01364290e3b2-5a4f-4d9e-8e7a-1234567890ab5204000053039865406${valorTotal?.toFixed(2).replace('.', '') || '1000'}5802BR5925SORTEIO ONLINE LTDA6009SAO PAULO62070503***6304`;
 
     return (
         <div className="min-h-screen bg-gray-50 flex justify-center">
@@ -129,41 +121,45 @@ const PagamentoPix = () => {
                                 Pagamento via PIX
                             </h2>
 
-                            {/* QR Code (placeholder) */}
-                            <div className="flex justify-center mb-6">
-                                <div className="w-48 h-48 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-                                    <div className="text-center">
-                                        <FiCreditCard className="mx-auto mb-2 text-gray-400" size={32} />
-                                        <p className="text-sm text-gray-500">QR Code PIX</p>
-                                        <p className="text-xs text-gray-400">Escaneie com seu banco</p>
+                            {/* Chave PIX */}
+                            {rifa?.chavePix ? (
+                                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                    <h3 className="font-semibold text-blue-800 mb-2">Chave PIX para Pagamento:</h3>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="text"
+                                            value={rifa.chavePix}
+                                            readOnly
+                                            className="flex-1 px-3 py-2 border border-blue-300 rounded-md bg-white text-sm font-mono"
+                                        />
+                                        <button
+                                            onClick={() => {
+                                                navigator.clipboard.writeText(rifa.chavePix).then(() => {
+                                                    setCopiado(true);
+                                                    setTimeout(() => setCopiado(false), 3000);
+                                                });
+                                            }}
+                                            className={`px-4 py-2 rounded-md flex items-center gap-2 transition-colors ${copiado
+                                                ? 'bg-green-500 text-white'
+                                                : 'bg-blue-500 hover:bg-blue-600 text-white'
+                                                }`}
+                                        >
+                                            {copiado ? <FiCheck size={16} /> : <FiCopy size={16} />}
+                                            {copiado ? 'Copiado!' : 'Copiar'}
+                                        </button>
                                     </div>
+                                    <p className="text-sm text-blue-600 mt-2">
+                                        💡 Use esta chave para fazer o PIX manual ou copie o código completo abaixo
+                                    </p>
                                 </div>
-                            </div>
-
-                            {/* Código PIX */}
-                            <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Código PIX (Copia e Cola)
-                                </label>
-                                <div className="flex gap-2">
-                                    <input
-                                        type="text"
-                                        value={codigoPix}
-                                        readOnly
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
-                                    />
-                                    <button
-                                        onClick={copiarCodigoPix}
-                                        className={`px-4 py-2 rounded-md flex items-center gap-2 transition-colors ${copiado
-                                            ? 'bg-green-500 text-white'
-                                            : 'bg-blue-500 hover:bg-blue-600 text-white'
-                                            }`}
-                                    >
-                                        {copiado ? <FiCheck size={16} /> : <FiCopy size={16} />}
-                                        {copiado ? 'Copiado!' : 'Copiar'}
-                                    </button>
+                            ) : (
+                                <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                    <h3 className="font-semibold text-yellow-800 mb-2">⚠️ Chave PIX não configurada</h3>
+                                    <p className="text-sm text-yellow-700">
+                                        A chave PIX não foi configurada para esta rifa. Use o código PIX completo abaixo.
+                                    </p>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Instruções */}
                             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -171,8 +167,8 @@ const PagamentoPix = () => {
                                 <ol className="text-sm text-blue-700 space-y-1">
                                     <li>1. Abra o app do seu banco</li>
                                     <li>2. Vá na opção PIX</li>
-                                    <li>3. Escolha "Pagar com QR Code" ou "Copia e Cola"</li>
-                                    <li>4. Escaneie o QR Code ou cole o código PIX</li>
+                                    <li>3. Escolha "Pagar com chave PIX" ou "Copia e Cola"</li>
+                                    <li>4. Use a chave PIX acima ou cole o código PIX completo</li>
                                     <li>5. Confirme o pagamento de R$ {valorTotal?.toFixed(2) || '10,00'}</li>
                                 </ol>
                             </div>

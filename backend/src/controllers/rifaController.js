@@ -4,11 +4,11 @@ const { Rifa, Bilhete, Participante, Usuario, Sorteio, Pagamento } = require('..
 // Criar uma nova rifa
 exports.createRifa = async (req, res) => {
     try {
-        const { titulo, descricao, premio, valorBilhete, quantidadeNumeros, dataInicio, dataFim } = req.body;
+        const { titulo, descricao, premio, valorBilhete, quantidadeNumeros, dataInicio, dataFim, chavePix } = req.body;
 
         // Validações básicas
-        if (!titulo || !premio || !valorBilhete || !quantidadeNumeros || !dataInicio || !dataFim) {
-            return res.status(400).json({ error: 'Campos obrigatórios: título, prêmio, valor do bilhete, quantidade de números, data início e fim' });
+        if (!titulo || !premio || !valorBilhete || !quantidadeNumeros || !dataInicio || !dataFim || !chavePix) {
+            return res.status(400).json({ error: 'Campos obrigatórios: título, prêmio, valor do bilhete, quantidade de números, data início, fim e chave PIX' });
         }
 
         if (new Date(dataInicio) >= new Date(dataFim)) {
@@ -34,7 +34,8 @@ exports.createRifa = async (req, res) => {
             quantidadeBilhetes: parseInt(quantidadeNumeros),
             dataInicio: new Date(dataInicio),
             dataFim: new Date(dataFim),
-            imagemUrl: imagemUrl
+            imagemUrl: imagemUrl,
+            chavePix
         });
 
         // Criar os bilhetes automaticamente
@@ -227,25 +228,58 @@ exports.atualizarRifa = async (req, res) => {
         }
 
         // Verificar se pode ser editada
-        if (rifa.status === 'finalizada') {
-            return res.status(400).json({ error: 'Não é possível editar uma rifa finalizada' });
+        if (rifa.status === 'encerrada') {
+            return res.status(400).json({ error: 'Não é possível editar uma rifa encerrada' });
         }
 
         // Verificar se tem bilhetes vendidos antes de alterar quantidade
-        if (req.body.quantidadeNumeros && req.body.quantidadeNumeros !== rifa.quantidadeNumeros) {
+        if (req.body.quantidadeNumeros && parseInt(req.body.quantidadeNumeros) !== rifa.quantidadeBilhetes) {
             const bilhetesVendidos = await Bilhete.count({
-                where: { rifaId: id, status: 'pago' }
+                where: { rifaId: id, status: 'vendido' }
             });
 
             if (bilhetesVendidos > 0) {
-                return res.status(400).json({
-                    error: 'Não é possível alterar quantidade de números com bilhetes já vendidos'
-                });
+                // Em vez de retornar erro, simplesmente ignorar a alteração da quantidade
+                delete req.body.quantidadeNumeros;
             }
         }
 
         // Preparar dados para atualização
         const dadosAtualizacao = { ...req.body };
+
+        // Validar status se presente
+        if (dadosAtualizacao.status) {
+            const statusValidos = ['ativa', 'encerrada', 'cancelada'];
+            if (!statusValidos.includes(dadosAtualizacao.status)) {
+                return res.status(400).json({
+                    error: `Status deve ser um dos seguintes: ${statusValidos.join(', ')}`
+                });
+            }
+        }
+
+        // Converter datas se presentes
+        if (dadosAtualizacao.dataInicio) {
+            dadosAtualizacao.dataInicio = new Date(dadosAtualizacao.dataInicio);
+        }
+        if (dadosAtualizacao.dataFim) {
+            dadosAtualizacao.dataFim = new Date(dadosAtualizacao.dataFim);
+        }
+
+        // Validar datas se ambas estiverem presentes
+        if (dadosAtualizacao.dataInicio && dadosAtualizacao.dataFim) {
+            if (dadosAtualizacao.dataInicio >= dadosAtualizacao.dataFim) {
+                return res.status(400).json({ error: 'Data de início deve ser anterior à data de fim' });
+            }
+        }
+
+        // Converter valores numéricos
+        if (dadosAtualizacao.valorBilhete) {
+            dadosAtualizacao.valorBilhete = parseFloat(dadosAtualizacao.valorBilhete);
+        }
+        if (dadosAtualizacao.quantidadeNumeros) {
+            dadosAtualizacao.quantidadeBilhetes = parseInt(dadosAtualizacao.quantidadeNumeros);
+            delete dadosAtualizacao.quantidadeNumeros; // Remover o campo que não existe no modelo
+        }
 
         // Configurar URL da imagem se foi enviada uma nova
         if (req.file) {
@@ -256,7 +290,7 @@ exports.atualizarRifa = async (req, res) => {
         res.status(200).json(rifa);
     } catch (error) {
         console.error('❌ Erro ao atualizar rifa:', error);
-        res.status(500).json({ error: 'Erro ao atualizar rifa' });
+        res.status(500).json({ error: 'Erro ao atualizar rifa', details: error.message });
     }
 };
 
@@ -269,14 +303,24 @@ exports.excluirRifa = async (req, res) => {
             return res.status(404).json({ error: 'Rifa não encontrada' });
         }
 
-        // Verificar se tem bilhetes vendidos
+        // Verificar se tem bilhetes vendidos ou reservados
         const bilhetesVendidos = await Bilhete.count({
-            where: { rifaId: id, status: 'pago' }
+            where: { rifaId: id, status: 'vendido' }
+        });
+
+        const bilhetesReservados = await Bilhete.count({
+            where: { rifaId: id, status: 'reservado' }
         });
 
         if (bilhetesVendidos > 0) {
             return res.status(400).json({
                 error: 'Não é possível excluir rifa com bilhetes vendidos'
+            });
+        }
+
+        if (bilhetesReservados > 0) {
+            return res.status(400).json({
+                error: 'Não é possível excluir rifa com bilhetes reservados. Cancele as reservas primeiro.'
             });
         }
 
@@ -333,7 +377,7 @@ exports.getEstatisticasRifa = async (req, res) => {
         });
 
         const bilhetesVendidos = await Bilhete.count({
-            where: { rifaId: id, status: 'pago' }
+            where: { rifaId: id, status: 'vendido' }
         });
 
         const totalArrecadado = bilhetesVendidos * rifa.valorBilhete;

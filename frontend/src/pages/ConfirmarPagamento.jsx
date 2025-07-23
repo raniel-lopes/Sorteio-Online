@@ -80,7 +80,7 @@ const ConfirmarPagamento = () => {
                         Seu comprovante foi enviado com sucesso. O pagamento será verificado em até 24 horas.
                     </p>
                     <p className="text-sm text-gray-500">
-                        Você receberá uma confirmação por WhatsApp assim que o pagamento for aprovado.
+                        Você receberá uma confirmação por Email assim que o pagamento for aprovado.
                     </p>
                 </div>
             </div>

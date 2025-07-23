@@ -5,7 +5,6 @@ import { Home, Users, Ticket, Trophy, CreditCard, Settings, Gift } from "lucide-
 const menuItems = [
     { label: "Dashboard", icon: <Home size={20} />, link: "/dashboard" },
     { label: "Rifas", icon: <Gift size={20} />, link: "/rifas" },
-    { label: "Sorteios", icon: <Trophy size={20} />, link: "/sorteios" },
     {
         label: "Pagamentos",
         icon: <CreditCard size={20} />,

@@ -8,7 +8,6 @@ import DashboardPage from "./pages/DashboardPage";
 import Participantes from "./pages/Participantes";
 import Rifas from "./pages/Rifas";
 import RifaDetalhes from "./pages/RifaDetalhes";
-import Sorteios from "./pages/Sorteios";
 import Pagamentos from "./pages/Pagamentos";
 import LoginPage from "./pages/LoginPage";
 import UsuariosPage from "./pages/UsuariosPage";
@@ -134,7 +133,6 @@ function App() {
                     <Route path="/participantes" element={<Participantes />} />
                     <Route path="/rifas" element={<Rifas />} />
                     <Route path="/rifas/:id" element={<RifaDetalhes />} />
-                    <Route path="/sorteios" element={<Sorteios />} />
                     <Route path="/pagamentos" element={<Pagamentos />} />
                     <Route path="/pagamentos/validar" element={<ValidarPagamentos />} />
                     <Route path="/usuarios" element={<UsuariosPage />} />

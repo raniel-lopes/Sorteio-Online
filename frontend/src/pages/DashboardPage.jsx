@@ -89,31 +89,6 @@ const RifasAtivas = ({ rifas }) => (
     </div>
 );
 
-// Componente Próximos Sorteios
-const ProximosSorteios = ({ sorteios }) => (
-    <div className="bg-white p-6 rounded-lg shadow-md h-full flex flex-col">
-        <h3 className="text-xl font-semibold mb-4">Próximos Sorteios</h3>
-        <div className="space-y-4">
-            {sorteios.length > 0 ? (
-                sorteios.slice(0, 3).map((sorteio) => (
-                    <div key={sorteio.id} className="border-l-4 border-purple-500 pl-4">
-                        <h4 className="font-semibold text-gray-900">{sorteio.Rifa?.titulo}</h4>
-                        <p className="text-sm text-gray-600">{sorteio.Rifa?.premio}</p>
-                        <div className="flex items-center text-xs text-gray-500 mt-1">
-                            <FiCalendar className="mr-1" size={12} />
-                            {new Date(sorteio.dataSorteio).toLocaleDateString()}
-                        </div>
-                    </div>
-                ))
-            ) : (
-                <div className="text-center text-gray-500">
-                    Nenhum sorteio programado
-                </div>
-            )}
-        </div>
-    </div>
-);
-
 export default function DashboardPage() {
     // Verificação de autenticação
     useEffect(() => {
@@ -131,11 +106,9 @@ export default function DashboardPage() {
         totalVendas: 0,
         bilhetesPendentes: 0,
         pagamentosPendentes: 0,
-        sorteiosRealizados: 0,
         receitaTotal: 0
     });
     const [rifas, setRifas] = useState([]);
-    const [sorteios, setSorteios] = useState([]);
     const [bilhetesRecentes, setBilhetesRecentes] = useState([]);
     const [pagamentosRecentes, setPagamentosRecentes] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -156,16 +129,6 @@ export default function DashboardPage() {
             const rifasData = Array.isArray(rifasResponse.data) ? rifasResponse.data :
                 (rifasResponse.data.rifas ? rifasResponse.data.rifas : []);
             setRifas(rifasData.filter(rifa => rifa.status === 'ativa'));
-
-            // Buscar próximos sorteios
-            try {
-                const sorteiosResponse = await api.get("/sorteios");
-                const sorteiosData = Array.isArray(sorteiosResponse.data) ? sorteiosResponse.data : [];
-                setSorteios(sorteiosData.filter(sorteio => sorteio.status === 'pendente'));
-            } catch (sorteioError) {
-                console.warn("Erro ao buscar sorteios:", sorteioError);
-                setSorteios([]);
-            }
 
             // Buscar bilhetes recentes
             try {
@@ -213,7 +176,6 @@ export default function DashboardPage() {
     const secondaryMetricsData = [
         { title: 'Bilhetes Disponíveis', value: stats.estatisticasFinanceiras?.bilhetesDisponiveis || 0, icon: <Ticket />, colorClass: 'bg-orange-500' },
         { title: 'Bilhetes Reservados', value: stats.estatisticasFinanceiras?.bilhetesReservados || 0, icon: <FiCreditCard />, colorClass: 'bg-red-500' },
-        { title: 'Total de Sorteios', value: stats.estatisticasGerais?.totalSorteios || 0, icon: <FiAward />, colorClass: 'bg-indigo-500' },
     ];
 
     const bilhetesData = bilhetesRecentes.map(bilhete => ({
@@ -251,7 +213,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Segunda linha de métricas */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
                 {secondaryMetricsData.map((metric, index) => (
                     <DashboardMetricCard
                         key={index}
@@ -263,15 +225,11 @@ export default function DashboardPage() {
                 ))}
             </div>
 
-            {/* Seção principal com Rifas Ativas, Próximos Sorteios e Bilhetes Recentes */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            {/* Seção principal com Rifas Ativas e Bilhetes Recentes */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Rifas Ativas */}
                 <div className="lg:col-span-1">
                     <RifasAtivas rifas={rifas} />
-                </div>
-                {/* Próximos Sorteios */}
-                <div className="lg:col-span-1">
-                    <ProximosSorteios sorteios={sorteios} />
                 </div>
                 {/* Bilhetes Recentes */}
                 <div className="lg:col-span-1">

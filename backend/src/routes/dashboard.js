@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
         // Estatísticas gerais
         const totalRifas = await Rifa.count();
         const rifasAtivas = await Rifa.count({ where: { status: 'ativa' } });
-        const rifasFinalizadas = await Rifa.count({ where: { status: 'finalizada' } });
+        const rifasFinalizadas = await Rifa.count({ where: { status: 'encerrada' } });
 
         const totalParticipantes = await Participante.count();
         const participantesAtivos = await Participante.count({ where: { ativo: true } });
@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
         const premiosEntregues = 0;
 
         // Estatísticas financeiras
-        const bilhetesPagos = await Bilhete.count({ where: { status: 'pago' } });
+        const bilhetesPagos = await Bilhete.count({ where: { status: 'vendido' } });
         const bilhetesDisponiveis = await Bilhete.count({ where: { status: 'disponivel' } });
         const bilhetesReservados = await Bilhete.count({ where: { status: 'reservado' } });
 
@@ -109,7 +109,7 @@ router.get('/relatorio/vendas', async (req, res) => {
         }
 
         let whereClause = {
-            status: 'pago',
+            status: 'vendido',
             dataPagamento: {
                 [Op.between]: [new Date(dataInicio), new Date(dataFim)]
             }

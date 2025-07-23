@@ -13,7 +13,6 @@ const participantesPublicosRoutes = require('./routes/participantesPublicos');
 const rifasRoutes = require('./routes/rifas');
 const rifasPublicasRoutes = require('./routes/rifasPublicas');
 const bilhetesRoutes = require('./routes/bilhetes');
-const sorteiosRoutes = require('./routes/sorteios');
 const pagamentosRoutes = require('./routes/pagamentos');
 const pagamentosValidacaoRoutes = require('./routes/pagamentosValidacao');
 const dashboardRoutes = require('./routes/dashboard');
@@ -40,7 +39,6 @@ app.use('/api/publico', rifasPublicasRoutes); // Rotas públicas primeiro
 app.use('/api/participantes', participantesRoutes);
 app.use('/api/rifas', rifasRoutes);
 app.use('/api/bilhetes', bilhetesRoutes);
-app.use('/api/sorteios', sorteiosRoutes);
 app.use('/api/pagamentos', pagamentosRoutes);
 app.use('/api/validacao-pagamentos', pagamentosValidacaoRoutes);
 app.use('/api/dashboard', dashboardRoutes);

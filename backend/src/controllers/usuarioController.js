@@ -201,7 +201,7 @@ exports.getEstatisticasUsuario = async (req, res) => {
         }
 
         const bilhetesVendidos = await Bilhete.count({
-            where: { vendidoPor: id, status: 'pago' }
+            where: { vendidoPor: id, status: 'vendido' }
         });
 
         const rifasCriadas = await Rifa.count({ where: { criadoPor: id } });
@@ -214,14 +214,14 @@ exports.getEstatisticasUsuario = async (req, res) => {
         const vendasUltimoMes = await Bilhete.count({
             where: {
                 vendidoPor: id,
-                status: 'pago',
+                status: 'vendido',
                 dataPagamento: { [Op.gte]: ultimoMes }
             }
         });
 
         // Calcular valor total das vendas
         const bilhetesComValor = await Bilhete.findAll({
-            where: { vendidoPor: id, status: 'pago' },
+            where: { vendidoPor: id, status: 'vendido' },
             include: [
                 {
                     model: Rifa,
@@ -324,11 +324,11 @@ exports.getRankingVendedores = async (req, res) => {
         const vendedoresComEstatisticas = await Promise.all(
             vendedores.map(async (vendedor) => {
                 const bilhetesVendidos = await Bilhete.count({
-                    where: { vendidoPor: vendedor.id, status: 'pago' }
+                    where: { vendidoPor: vendedor.id, status: 'vendido' }
                 });
 
                 const bilhetesComValor = await Bilhete.findAll({
-                    where: { vendidoPor: vendedor.id, status: 'pago' },
+                    where: { vendidoPor: vendedor.id, status: 'vendido' },
                     include: [
                         {
                             model: Rifa,

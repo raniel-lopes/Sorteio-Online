@@ -485,13 +485,9 @@ const RifaPublica = () => {
                         {/* Footer */}
                         <footer className="bg-black/90 py-1.5 px-1 text-center">
                             <div className="mt-2 flex justify-center items-center">
-                                <p className="text-white text-xs">made with ❤️</p>
+                                <p className="text-white text-xs">Desenvolvido por Raniel Lopes</p>
                             </div>
-                            <div className="p-1 flex text-xs items-center justify-center gap-2 text-white">
-                                <a href="#" className="hover:text-gray-300">Termos de Uso</a>
-                                <span>|</span>
-                                <a href="#" className="hover:text-gray-300">Políticas de Privacidade</a>
-                            </div>
+
                         </footer>
                     </div>
 

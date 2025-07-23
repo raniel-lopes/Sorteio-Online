@@ -2,32 +2,32 @@ const express = require('express');
 const router = express.Router();
 const { Rifa, Bilhete, Participante } = require('../models');
 
-// Rota pública para buscar uma rifa específica
+// Rota pública para buscar uma rifa específica - OTIMIZADA
 router.get('/publica/:id', async (req, res) => {
     try {
+        // Buscar rifa sem carregar todos os bilhetes
         const rifa = await Rifa.findByPk(req.params.id, {
-            include: [
-                {
-                    model: Bilhete,
-                    as: 'bilhetes',
-                    include: [
-                        {
-                            model: Participante,
-                            as: 'participante',
-                            attributes: ['nome']
-                        }
-                    ]
-                }
-            ]
+            attributes: ['id', 'titulo', 'descricao', 'valorBilhete', 'quantidadeBilhetes', 'dataInicio', 'dataFim', 'status', 'imagemUrl', 'chavePix']
         });
 
         if (!rifa) {
             return res.status(404).json({ error: 'Rifa não encontrada' });
         }
 
-        // Calcular estatísticas
-        const bilhetesVendidos = rifa.bilhetes.filter(b => b.status === 'vendido').length;
-        const bilhetesReservados = rifa.bilhetes.filter(b => b.status === 'reservado').length;
+        // Calcular estatísticas usando agregação (muito mais rápido)
+        const [stats] = await require('../config/database').query(`
+            SELECT 
+                COUNT(CASE WHEN status = 'vendido' THEN 1 END) as vendidos,
+                COUNT(CASE WHEN status = 'reservado' THEN 1 END) as reservados
+            FROM "Bilhetes" 
+            WHERE "rifaId" = :rifaId
+        `, {
+            replacements: { rifaId: req.params.id },
+            type: require('sequelize').QueryTypes.SELECT
+        });
+
+        const bilhetesVendidos = parseInt(stats.vendidos) || 0;
+        const bilhetesReservados = parseInt(stats.reservados) || 0;
 
         const rifaPublica = {
             id: rifa.id,
@@ -35,9 +35,11 @@ router.get('/publica/:id', async (req, res) => {
             descricao: rifa.descricao,
             valorBilhete: rifa.valorBilhete,
             quantidadeBilhetes: rifa.quantidadeBilhetes,
-            dataSorteio: rifa.dataSorteio,
+            dataInicio: rifa.dataInicio,
+            dataFim: rifa.dataFim,
             status: rifa.status,
             imagemUrl: rifa.imagemUrl,
+            chavePix: rifa.chavePix,
             bilhetesVendidos,
             bilhetesReservados,
             bilhetesDisponiveis: rifa.quantidadeBilhetes - bilhetesVendidos - bilhetesReservados
@@ -50,60 +52,94 @@ router.get('/publica/:id', async (req, res) => {
     }
 });
 
-// Rota para reservar bilhetes (sem autenticação)
+// Rota para reservar bilhetes (sem autenticação) - OTIMIZADA
 router.post('/publica/:id/reservar', async (req, res) => {
+    const transaction = await require('../config/database').transaction();
+
     try {
         const { participanteId, quantidade } = req.body;
         const rifaId = req.params.id;
 
-        // Verificar se a rifa existe e está ativa
-        const rifa = await Rifa.findByPk(rifaId);
-        if (!rifa) {
-            return res.status(404).json({ error: 'Rifa não encontrada' });
+        // Validação básica
+        if (!participanteId || !quantidade || quantidade <= 0) {
+            await transaction.rollback();
+            return res.status(400).json({ error: 'Dados inválidos' });
         }
 
-        if (rifa.status !== 'ativa') {
-            return res.status(400).json({ error: 'Rifa não está ativa' });
-        }
-
-        // Verificar disponibilidade
-        const bilhetesExistentes = await Bilhete.count({
-            where: {
-                rifaId: rifaId,
-                status: ['vendido', 'reservado']
-            }
+        // Verificar se a rifa existe e está ativa (sem includes desnecessários)
+        const rifa = await Rifa.findByPk(rifaId, {
+            attributes: ['id', 'quantidadeBilhetes', 'status'],
+            transaction
         });
 
-        if (bilhetesExistentes + quantidade > rifa.quantidadeBilhetes) {
-            return res.status(400).json({ error: 'Não há bilhetes suficientes disponíveis' });
+        if (!rifa || rifa.status !== 'ativa') {
+            await transaction.rollback();
+            return res.status(400).json({ error: 'Rifa não encontrada ou inativa' });
         }
 
-        // Criar bilhetes reservados
-        const bilhetes = [];
-        for (let i = 0; i < quantidade; i++) {
-            const proximoNumero = bilhetesExistentes + i + 1;
-            bilhetes.push({
-                rifaId: rifaId,
-                participanteId: participanteId,
-                numero: proximoNumero,
-                status: 'reservado'
+        // Verificar disponibilidade usando agregação otimizada
+        const [result] = await require('../config/database').query(`
+            SELECT COUNT(*) as ocupados 
+            FROM "Bilhetes" 
+            WHERE "rifaId" = :rifaId 
+            AND "status" IN ('vendido', 'reservado')
+        `, {
+            replacements: { rifaId },
+            type: require('sequelize').QueryTypes.SELECT,
+            transaction
+        });
+
+        const bilhetesOcupados = parseInt(result.ocupados);
+        const bilhetesDisponiveis = rifa.quantidadeBilhetes - bilhetesOcupados;
+
+        if (quantidade > bilhetesDisponiveis) {
+            await transaction.rollback();
+            return res.status(400).json({
+                error: `Apenas ${bilhetesDisponiveis} bilhetes disponíveis`
             });
         }
 
-        const bilhetesCriados = await Bilhete.bulkCreate(bilhetes);
+        // Gerar números de forma otimizada (em lote)
+        const proximoNumero = bilhetesOcupados + 1;
+        const bilhetes = [];
+
+        for (let i = 0; i < quantidade; i++) {
+            bilhetes.push({
+                rifaId: rifaId,
+                participanteId: participanteId,
+                numero: proximoNumero + i,
+                status: 'reservado',
+                valor: 0 // Será definido depois
+            });
+        }
+
+        // Criar todos os bilhetes de uma vez (operação atômica)
+        const bilhetesCriados = await Bilhete.bulkCreate(bilhetes, {
+            transaction,
+            validate: true,
+            returning: true
+        });
+
+        await transaction.commit();
 
         res.json({
             success: true,
-            message: 'Bilhetes reservados com sucesso',
-            bilhetes: bilhetesCriados
+            message: `${quantidade} bilhetes reservados com sucesso`,
+            bilhetes: bilhetesCriados.map(b => ({
+                id: b.id,
+                numero: b.numero,
+                status: b.status
+            }))
         });
+
     } catch (error) {
+        await transaction.rollback();
         console.error('Erro ao reservar bilhetes:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });
 
-// Rota para verificar números de um participante pelo celular
+// Rota para verificar números de um participante pelo celular - OTIMIZADA
 router.post('/publica/:id/verificar-numeros', async (req, res) => {
     try {
         const { celular } = req.body;
@@ -113,22 +149,25 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             return res.status(400).json({ error: 'Celular é obrigatório' });
         }
 
-        // Buscar bilhetes do participante nesta rifa específica
-        const bilhetes = await Bilhete.findAll({
-            where: {
-                rifaId: rifaId
-            },
-            include: [
-                {
-                    model: Participante,
-                    as: 'participante',
-                    where: {
-                        celular: celular
-                    },
-                    attributes: ['id', 'nome', 'celular', 'email']
-                }
-            ],
-            order: [['numero', 'ASC']]
+        // Busca otimizada usando JOIN direto no SQL
+        const [bilhetes] = await require('../config/database').query(`
+            SELECT 
+                b.id,
+                b.numero,
+                b.status,
+                b."dataVenda",
+                p.id as participante_id,
+                p.nome as participante_nome,
+                p.celular as participante_celular,
+                p.email as participante_email
+            FROM "Bilhetes" b
+            INNER JOIN "Participantes" p ON b."participanteId" = p.id
+            WHERE b."rifaId" = :rifaId 
+            AND p.celular = :celular
+            ORDER BY b.numero ASC
+        `, {
+            replacements: { rifaId, celular },
+            type: require('sequelize').QueryTypes.SELECT
         });
 
         if (!bilhetes || bilhetes.length === 0) {
@@ -137,26 +176,21 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             });
         }
 
-        // Pegar dados do participante (todos os bilhetes têm o mesmo participante)
-        const participante = bilhetes[0].participante;
-
-        // Calcular valor total gasto
-        const valorTotal = bilhetes.reduce((total, bilhete) => total + parseFloat(bilhete.valor), 0);
-
+        // Formatar resposta
         const resultado = {
             participante: {
-                nome: participante.nome,
-                celular: participante.celular,
-                email: participante.email
+                id: bilhetes[0].participante_id,
+                nome: bilhetes[0].participante_nome,
+                celular: bilhetes[0].participante_celular,
+                email: bilhetes[0].participante_email
             },
-            numeros: bilhetes.map(bilhete => ({
-                numero: bilhete.numero,
-                status: bilhete.status,
-                valor: bilhete.valor
+            bilhetes: bilhetes.map(b => ({
+                id: b.id,
+                numero: b.numero,
+                status: b.status,
+                dataVenda: b.dataVenda
             })),
-            totalNumeros: bilhetes.length,
-            valorTotal: valorTotal.toFixed(2),
-            statusGeral: bilhetes.length > 0 ? bilhetes[0].status : 'não encontrado'
+            total: bilhetes.length
         };
 
         res.json(resultado);

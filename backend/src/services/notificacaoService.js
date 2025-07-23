@@ -7,7 +7,7 @@ const nodemailer = require('nodemailer');
 
 // Configuração do transportador de email
 const criarTransportador = () => {
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
         service: 'gmail',
         auth: {
             user: process.env.EMAIL_USER || 'seu-email@gmail.com', // Configure no .env
@@ -87,7 +87,7 @@ const criarEmailPagamentoAprovado = (dadosPagamento) => {
                     <div class="details">
                         <h3>📋 Detalhes da sua compra:</h3>
                         <div class="detail-row">
-                            <span><strong>🎯 Rifa:</strong></span>
+                            <span><strong>🎯 Sorteio:</strong></span>
                             <span>${dados.rifaTitulo}</span>
                         </div>
                         <div class="detail-row">
@@ -111,7 +111,7 @@ const criarEmailPagamentoAprovado = (dadosPagamento) => {
                     
                     ${participante.celular ? `
                     <p>Caso tenha dúvidas, entre em contato conosco:</p>
-                    <a href="https://wa.me/55${participante.celular.replace(/\D/g, '')}?text=Olá! Tenho uma dúvida sobre minha participação na rifa ${dados.rifaTitulo}" class="btn-whatsapp">
+                    <a href="https://wa.me/55${participante.celular.replace(/\D/g, '')}?text=Olá! Tenho uma dúvida sobre minha participação no sorteio ${dados.rifaTitulo}" class="btn-whatsapp">
                         💬 Falar no WhatsApp
                     </a>
                     ` : ''}
@@ -164,7 +164,7 @@ const criarEmailPagamentoRejeitado = (dadosPagamento, motivo) => {
                 <div class="content">
                     <p>Olá <strong>${participante.nome}</strong>,</p>
                     
-                    <p>Infelizmente, não conseguimos aprovar seu pagamento para a rifa.</p>
+                    <p>Infelizmente, não conseguimos aprovar seu pagamento para o sorteio.</p>
                     
                     <div class="motivo">
                         <h3>📝 Motivo da rejeição:</h3>
@@ -173,7 +173,7 @@ const criarEmailPagamentoRejeitado = (dadosPagamento, motivo) => {
                     
                     <div class="details">
                         <h3>📋 Detalhes da tentativa:</h3>
-                        <p><strong>🎯 Rifa:</strong> ${dados.rifaTitulo}</p>
+                        <p><strong>🎯 Sorteio:</strong> ${dados.rifaTitulo}</p>
                         <p><strong>🎫 Quantidade:</strong> ${dados.quantidadeBilhetes} bilhete(s)</p>
                     </div>
                     
@@ -188,7 +188,7 @@ const criarEmailPagamentoRejeitado = (dadosPagamento, motivo) => {
                     
                     ${participante.celular ? `
                     <p>Em caso de dúvidas, entre em contato conosco:</p>
-                    <a href="https://wa.me/55${participante.celular.replace(/\D/g, '')}?text=Olá! Preciso de ajuda com meu pagamento rejeitado para a rifa ${dados.rifaTitulo}" class="btn-action">
+                    <a href="https://wa.me/55${participante.celular.replace(/\D/g, '')}?text=Olá! Preciso de ajuda com meu pagamento rejeitado para o sorteio ${dados.rifaTitulo}" class="btn-action">
                         💬 Falar no WhatsApp
                     </a>
                     ` : ''}

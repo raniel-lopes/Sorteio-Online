@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Participante, Bilhete, Rifa, Pagamento } = require('../models');
+const notificacaoService = require('../services/notificacaoService');
 
 // Rota pública para criar participante (sem autenticação)
 router.post('/participantes', async (req, res) => {
@@ -52,6 +53,20 @@ router.post('/participantes', async (req, res) => {
             }
 
             if (email && participante.email !== email) {
+                // Verificar se o novo email já existe em outro participante
+                const emailExistente = await Participante.findOne({
+                    where: {
+                        email: email,
+                        id: { [require('sequelize').Op.ne]: participante.id } // Excluir o próprio participante
+                    }
+                });
+
+                if (emailExistente) {
+                    return res.status(400).json({
+                        error: 'Este email já está sendo usado por outro participante'
+                    });
+                }
+
                 participante.email = email;
                 dadosAtualizados = true;
             }
@@ -138,6 +153,39 @@ router.post('/participantes', async (req, res) => {
 
         console.log(`💳 Pagamento pendente criado para ${nome} - Valor: R$ ${valorTotal || (numerosReservados.length * rifa.valorBilhete)}`);
 
+        // 📧 ENVIAR EMAIL DE RESERVA (INFORMATIVO)
+        try {
+            if (participante.email) {
+                const emailData = notificacaoService.criarEmailPagamentoAprovado({
+                    participante: {
+                        nome: participante.nome,
+                        email: participante.email,
+                        celular: participante.celular
+                    },
+                    dadosPagamento: {
+                        rifaTitulo: rifa.titulo,
+                        quantidadeBilhetes: numerosReservados.length,
+                        numerosReservados: numerosReservados
+                    },
+                    valor: valorTotal || (numerosReservados.length * rifa.valorBilhete)
+                });
+
+                // Personalizar assunto para reserva
+                const assuntoReserva = '🎫 Reserva Confirmada - Aguardando Pagamento';
+
+                await notificacaoService.enviarEmail(
+                    participante.email,
+                    assuntoReserva,
+                    emailData.conteudoHtml
+                );
+
+                console.log(`📧 Email de reserva enviado para ${participante.email}`);
+            }
+        } catch (emailError) {
+            console.error('⚠️ Erro ao enviar email de reserva:', emailError.message);
+            // Não falhar a operação se o email falhar
+        }
+
         res.json({
             ...participante.toJSON(),
             numerosReservados,
@@ -147,6 +195,19 @@ router.post('/participantes', async (req, res) => {
         });
     } catch (error) {
         console.error('Erro ao criar participante público:', error);
+
+        // Tratamento específico para erros de constraint única
+        if (error.name === 'SequelizeUniqueConstraintError') {
+            if (error.errors && error.errors[0] && error.errors[0].path === 'email') {
+                return res.status(400).json({
+                    error: 'Este email já está sendo usado por outro participante'
+                });
+            }
+            return res.status(400).json({
+                error: 'Dados duplicados. Verifique se as informações já não foram cadastradas.'
+            });
+        }
+
         res.status(500).json({ error: 'Erro interno do servidor' });
     }
 });

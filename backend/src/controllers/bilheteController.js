@@ -136,7 +136,7 @@ exports.venderBilhete = async (req, res) => {
 
         // Atualizar o bilhete como vendido
         await bilhete.update({
-            status: 'pago',
+            status: 'vendido',
             nomeComprador,
             celularComprador,
             emailComprador,
@@ -168,7 +168,7 @@ exports.venderBilhete = async (req, res) => {
 
         // Atualizar estatísticas da rifa
         const bilhetesVendidos = await Bilhete.count({
-            where: { rifaId, status: 'pago' }
+            where: { rifaId, status: 'vendido' }
         });
 
         const totalArrecadado = bilhetesVendidos * rifa.valorBilhete;
@@ -241,7 +241,7 @@ exports.estornarBilhete = async (req, res) => {
 
     try {
         const bilhete = await Bilhete.findOne({
-            where: { rifaId, numero, status: 'pago' }
+            where: { rifaId, numero, status: 'vendido' }
         });
 
         if (!bilhete) {
@@ -250,8 +250,8 @@ exports.estornarBilhete = async (req, res) => {
 
         // Verificar se a rifa não foi sorteada
         const rifa = await Rifa.findByPk(rifaId);
-        if (rifa.status === 'finalizada') {
-            return res.status(400).json({ error: 'Não é possível estornar bilhete de rifa finalizada' });
+        if (rifa.status === 'encerrada') {
+            return res.status(400).json({ error: 'Não é possível estornar bilhete de rifa encerrada' });
         }
 
         // Estornar pagamento
@@ -284,7 +284,7 @@ exports.estornarBilhete = async (req, res) => {
 
         // Atualizar estatísticas da rifa
         const bilhetesVendidos = await Bilhete.count({
-            where: { rifaId, status: 'pago' }
+            where: { rifaId, status: 'vendido' }
         });
 
         const totalArrecadado = bilhetesVendidos * rifa.valorBilhete;

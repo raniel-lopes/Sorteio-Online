@@ -46,17 +46,33 @@ router.post('/comprovante', upload.single('comprovante'), async (req, res) => {
 
         // Verificar se o participante existe
         const participante = await Participante.findByPk(participanteId, {
-            include: [{ model: Rifa, as: 'rifa' }]
+            include: [
+                {
+                    model: Bilhete,
+                    as: 'bilhetes',
+                    include: [
+                        {
+                            model: Rifa,
+                            as: 'rifa'
+                        }
+                    ]
+                }
+            ]
         });
 
         if (!participante) {
             return res.status(404).json({ error: 'Participante não encontrado' });
         }
 
+        // Calcular valor total baseado nos bilhetes
+        const valorTotal = participante.bilhetes.reduce((total, bilhete) => {
+            return total + (parseFloat(bilhete.valor) || 0);
+        }, 0);
+
         // Criar registro de pagamento
         const pagamento = await Pagamento.create({
             participanteId: participanteId,
-            valor: participante.valorTotal,
+            valor: valorTotal,
             metodoPagamento: 'pix',
             status: 'pendente',
             comprovanteUrl: `/uploads/comprovantes/${req.file.filename}`,
@@ -239,7 +255,18 @@ router.get('/:id', async (req, res) => {
                 {
                     model: Participante,
                     as: 'participante',
-                    include: [{ model: Rifa, as: 'rifa' }]
+                    include: [
+                        {
+                            model: Bilhete,
+                            as: 'bilhetes',
+                            include: [
+                                {
+                                    model: Rifa,
+                                    as: 'rifa'
+                                }
+                            ]
+                        }
+                    ]
                 }
             ]
         });
