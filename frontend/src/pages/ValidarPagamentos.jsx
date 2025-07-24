@@ -214,7 +214,7 @@ Em caso de dúvidas, estamos à disposição!`;
                                                 <div className="flex items-center gap-2">
                                                     <FiEye
                                                         className="text-blue-500 cursor-pointer hover:text-blue-700"
-                                                        onClick={() => window.open(`http://localhost:5000${pagamento.comprovanteUrl}`, '_blank')}
+                                                        onClick={() => window.open(`https://sorteio-online-production.up.railway.app${pagamento.comprovanteUrl}`, '_blank')}
                                                         title="Ver comprovante"
                                                     />
                                                     <span className="text-green-600 text-xs">✓ Enviado</span>

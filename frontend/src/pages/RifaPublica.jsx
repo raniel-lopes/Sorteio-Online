@@ -128,7 +128,7 @@ const RifaPublica = () => {
 
         setLoadingVerificacao(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/publico/publica/${id}/verificar-numeros`, {
+            const response = await fetch(`https://sorteio-online-production.up.railway.app/api/publico/publica/${id}/verificar-numeros`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -218,7 +218,7 @@ const RifaPublica = () => {
                             <div className="aspect-video w-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center rounded-lg">
                                 {rifa.imagemUrl ? (
                                     <img
-                                        src={`http://localhost:5000${rifa.imagemUrl}`}
+                                        src={`https://sorteio-online-production.up.railway.app${rifa.imagemUrl}`}
                                         alt={rifa.titulo}
                                         className="w-full h-full object-cover rounded-lg"
                                     />
