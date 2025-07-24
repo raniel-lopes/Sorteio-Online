@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { FiPlus, FiSearch, FiEdit2, FiTrash2, FiGift, FiCalendar, FiDollarSign, FiUsers, FiLink, FiShare2, FiEye } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import Modal from "../components/Modal";
-import api from "../services/api";
+import api, { BASE_URL } from "../services/api";
 
 const Rifas = () => {
     const navigate = useNavigate();
@@ -498,7 +498,7 @@ const Rifas = () => {
                                         src={
                                             formData.imagem
                                                 ? URL.createObjectURL(formData.imagem)
-                                                : `http://localhost:5000${editingRifa?.imagemUrl}`
+                                                : `${BASE_URL}${editingRifa?.imagemUrl}`
                                         }
                                         alt="Preview"
                                         className="w-32 h-32 object-cover rounded-lg border border-gray-300"

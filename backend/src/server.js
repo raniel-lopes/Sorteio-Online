@@ -13,7 +13,7 @@ const createUploadDirs = () => {
         path.join(__dirname, '../uploads/rifas'),
         path.join(__dirname, '../uploads/comprovantes')
     ];
-    
+
     uploadDirs.forEach(dir => {
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true });

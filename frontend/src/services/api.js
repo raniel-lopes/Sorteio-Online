@@ -1,8 +1,11 @@
 import axios from "axios";
 
+// URL base para API e arquivos estáticos
+export const BASE_URL = "https://sorteio-online-production.up.railway.app";
+
 // URL hardcoded para garantir funcionamento em produção
 const api = axios.create({
-    baseURL: "https://sorteio-online-production.up.railway.app/api",
+    baseURL: `${BASE_URL}/api`,
 });
 
 // Interceptor para adicionar o token em todas as requisições

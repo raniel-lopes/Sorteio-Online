@@ -20,7 +20,7 @@ const PagamentoPix = () => {
     const carregarRifa = async () => {
         try {
             const timestamp = Date.now(); // Evitar cache
-            const response = await fetch(`http://localhost:5000/api/publico/publica/${id}?t=${timestamp}`);
+            const response = await fetch(`https://sorteio-online-production.up.railway.app/api/publico/publica/${id}?t=${timestamp}`);
             if (response.ok) {
                 const data = await response.json();
                 console.log('🔍 Dados da rifa carregados:', data); // Debug
