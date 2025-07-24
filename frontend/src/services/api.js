@@ -1,7 +1,8 @@
 import axios from "axios";
 
+// URL hardcoded para garantir funcionamento em produção
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || "https://sorteio-online-production.up.railway.app/api",
+    baseURL: "https://sorteio-online-production.up.railway.app/api",
 });
 
 // Interceptor para adicionar o token em todas as requisições
