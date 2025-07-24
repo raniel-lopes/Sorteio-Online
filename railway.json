@@ -5,7 +5,7 @@
   },
   "deploy": {
     "startCommand": "cd backend && npm start",
-    "healthcheckPath": "/",
+    "healthcheckPath": "/api/dashboard",
     "healthcheckTimeout": 100,
     "restartPolicyType": "always"
   }
