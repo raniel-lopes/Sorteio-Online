@@ -3,7 +3,27 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const sequelize = require('./config/database');
+
+// Criar diretórios de upload se não existirem
+const createUploadDirs = () => {
+    const uploadDirs = [
+        path.join(__dirname, '../uploads'),
+        path.join(__dirname, '../uploads/rifas'),
+        path.join(__dirname, '../uploads/comprovantes')
+    ];
+    
+    uploadDirs.forEach(dir => {
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+            console.log(`📁 Diretório criado: ${dir}`);
+        }
+    });
+};
+
+// Criar diretórios na inicialização
+createUploadDirs();
 
 // Importar rotas
 const authRoutes = require('./routes/authRoutes');
@@ -25,7 +45,8 @@ app.use(cors({
         'http://localhost:5173',
         'http://localhost:5174',
         'https://sorteio-online.vercel.app',
-        'https://*.vercel.app'
+        'https://*.vercel.app',
+        'https://sorteio-online-production.vercel.app'
     ],
     credentials: true
 }));
