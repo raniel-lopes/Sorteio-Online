@@ -34,7 +34,7 @@ const RifaPublica = () => {
 
     const carregarRifa = async () => {
         try {
-            const response = await fetch(`http://localhost:5000/api/publico/publica/${id}`);
+            const response = await fetch(`https://sorteio-online-production.up.railway.app/api/publico/publica/${id}`);
             if (response.ok) {
                 const data = await response.json();
                 setRifa(data);
@@ -80,7 +80,7 @@ const RifaPublica = () => {
             numerosReservados.sort((a, b) => a - b);
 
             // Criar participante
-            const participanteResponse = await fetch('http://localhost:5000/api/publico/participantes', {
+            const participanteResponse = await fetch('https://sorteio-online-production.up.railway.app/api/publico/participantes', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

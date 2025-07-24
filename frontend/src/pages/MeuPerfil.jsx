@@ -14,7 +14,7 @@ export default function MeuPerfil() {
     const handleSalvarDados = async (e) => {
         e.preventDefault();
         try {
-            const response = await fetch("http://localhost:5000/api/usuarios/me", {
+            const response = await fetch("https://sorteio-online-production.up.railway.app/api/usuarios/me", {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -41,7 +41,7 @@ export default function MeuPerfil() {
             return;
         }
         try {
-            const response = await fetch("http://localhost:5000/api/usuarios/me/senha", {
+            const response = await fetch("https://sorteio-online-production.up.railway.app/api/usuarios/me/senha", {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
