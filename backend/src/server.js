@@ -21,7 +21,12 @@ const app = express();
 
 // Libera o frontend (React) para se comunicar com o backend
 app.use(cors({
-    origin: ['http://localhost:5173', 'http://localhost:5174'], // Aceita ambas as portas
+    origin: [
+        'http://localhost:5173',
+        'http://localhost:5174',
+        'https://sorteio-online.vercel.app',
+        'https://*.vercel.app'
+    ],
     credentials: true
 }));
 
