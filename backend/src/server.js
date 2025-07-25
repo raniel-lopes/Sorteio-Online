@@ -10,25 +10,25 @@ const sequelize = require('./config/database');
 const executarMigracaoSlug = async () => {
     try {
         console.log('🔍 Verificando se precisa executar migração de slug...');
-        
+
         // Tentar verificar se a coluna slug existe
         const [results] = await sequelize.query(`
             SELECT column_name 
             FROM information_schema.columns 
             WHERE table_name = 'Rifas' AND column_name = 'slug'
         `);
-        
+
         if (results.length === 0) {
             console.log('📦 Executando migração: adicionar coluna slug...');
-            
+
             // Adicionar coluna slug
             await sequelize.query(`
                 ALTER TABLE "Rifas" 
                 ADD COLUMN "slug" VARCHAR(255) UNIQUE
             `);
-            
+
             console.log('✅ Migração de slug executada com sucesso!');
-            
+
             // Gerar slugs para rifas existentes
             await gerarSlugsParaRifasExistentes();
         } else {
@@ -43,10 +43,10 @@ const executarMigracaoSlug = async () => {
 const gerarSlugsParaRifasExistentes = async () => {
     try {
         console.log('🔍 Gerando slugs para rifas existentes...');
-        
+
         const { Rifa } = require('./models');
         const { Op } = require('sequelize');
-        
+
         // Função slugify
         function slugify(text) {
             return text
@@ -57,7 +57,7 @@ const gerarSlugsParaRifasExistentes = async () => {
                 .replace(/^-+|-+$/g, '')
                 .substring(0, 100);
         }
-        
+
         // Buscar rifas sem slug
         const rifasSemSlug = await Rifa.findAll({
             where: {
@@ -67,33 +67,33 @@ const gerarSlugsParaRifasExistentes = async () => {
                 ]
             }
         });
-        
+
         console.log(`📋 Encontradas ${rifasSemSlug.length} rifas sem slug`);
-        
+
         for (const rifa of rifasSemSlug) {
             let baseSlug = slugify(rifa.titulo);
             let slug = baseSlug;
             let counter = 1;
-            
+
             // Verificar se slug já existe
             while (true) {
-                const existingRifa = await Rifa.findOne({ 
-                    where: { 
+                const existingRifa = await Rifa.findOne({
+                    where: {
                         slug,
                         id: { [Op.ne]: rifa.id }
-                    } 
+                    }
                 });
-                
+
                 if (!existingRifa) break;
-                
+
                 slug = `${baseSlug}-${counter}`;
                 counter++;
             }
-            
+
             await rifa.update({ slug });
             console.log(`✅ Rifa "${rifa.titulo}" -> slug: "${slug}"`);
         }
-        
+
         console.log('🎉 Geração de slugs concluída!');
     } catch (error) {
         console.error('❌ Erro ao gerar slugs:', error);
@@ -184,9 +184,12 @@ sequelize.authenticate()
     .then(async () => {
         console.log('✅ Conexão com o banco de dados bem-sucedida!');
         console.log('✅ Usando migrações para gerenciar tabelas!');
-        
+
         // Executar migração de slug automaticamente
         await executarMigracaoSlug();
+
+        // Gerar slugs para rifas existentes SEMPRE
+        await gerarSlugsParaRifasExistentes();
 
         // Logar todos os slugs das rifas para debug
         const { Rifa } = require('./models');

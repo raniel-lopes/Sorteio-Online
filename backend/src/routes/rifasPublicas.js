@@ -6,7 +6,7 @@ const { Rifa, Bilhete, Participante } = require('../models');
 router.get('/publica/slug/:slug', async (req, res) => {
     try {
         console.log('🔍 Buscando rifa por slug:', req.params.slug);
-        
+
         // Buscar rifa por slug
         const rifa = await Rifa.findOne({
             where: { slug: req.params.slug },
