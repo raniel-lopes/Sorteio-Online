@@ -187,6 +187,14 @@ sequelize.authenticate()
         
         // Executar migração de slug automaticamente
         await executarMigracaoSlug();
+
+        // Logar todos os slugs das rifas para debug
+        const { Rifa } = require('./models');
+        const rifas = await Rifa.findAll({ attributes: ['id', 'titulo', 'slug'] });
+        console.log('📋 Rifas cadastradas:');
+        rifas.forEach(r => {
+            console.log(`ID: ${r.id} | Título: ${r.titulo} | Slug: ${r.slug}`);
+        });
     })
     .catch((error) => {
         console.error('❌ Erro ao conectar com o banco de dados:', error);
