@@ -1,6 +1,39 @@
 const { Op } = require('sequelize');
 const { Rifa, Bilhete, Participante, Usuario, Sorteio, Pagamento } = require('../models');
 
+// Função para gerar slug a partir do título
+function slugify(text) {
+    return text
+        .toString()
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // Remove acentos
+        .replace(/[^a-z0-9]+/g, '-') // Substitui espaços e caracteres especiais por hífen
+        .replace(/^-+|-+$/g, '') // Remove hífens do início e fim
+        .substring(0, 100); // Limita a 100 caracteres
+}
+
+// Função para gerar slug único
+async function generateUniqueSlug(titulo, rifaId = null) {
+    let baseSlug = slugify(titulo);
+    let slug = baseSlug;
+    let counter = 1;
+
+    while (true) {
+        const whereClause = { slug };
+        if (rifaId) {
+            whereClause.id = { [Op.ne]: rifaId };
+        }
+        
+        const existingRifa = await Rifa.findOne({ where: whereClause });
+        if (!existingRifa) {
+            return slug;
+        }
+        
+        slug = `${baseSlug}-${counter}`;
+        counter++;
+    }
+}
+
 // Criar uma nova rifa
 exports.createRifa = async (req, res) => {
     try {
@@ -19,6 +52,9 @@ exports.createRifa = async (req, res) => {
             return res.status(400).json({ error: 'Quantidade de números deve estar entre 10 e 100.000' });
         }
 
+        // Gerar slug único
+        const slug = await generateUniqueSlug(titulo);
+
         // Configurar URL da imagem se foi enviada
         let imagemUrl = null;
         if (req.file) {
@@ -28,6 +64,7 @@ exports.createRifa = async (req, res) => {
         // Criar a rifa
         const rifa = await Rifa.create({
             titulo,
+            slug,
             descricao,
             premio,
             valorBilhete: parseFloat(valorBilhete),

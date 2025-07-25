@@ -2,12 +2,49 @@ const express = require('express');
 const router = express.Router();
 const { Rifa, Bilhete, Participante } = require('../models');
 
-// Rota pública para buscar uma rifa específica - OTIMIZADA
+// Rota pública para buscar uma rifa por slug
+router.get('/publica/slug/:slug', async (req, res) => {
+    try {
+        const rifa = await Rifa.findOne({
+            where: { slug: req.params.slug },
+            attributes: ['id', 'titulo', 'slug', 'descricao', 'valorBilhete', 'quantidadeBilhetes', 'dataInicio', 'dataFim', 'status', 'imagemUrl', 'chavePix']
+        });
+
+        if (!rifa) {
+            return res.status(404).json({ error: 'Rifa não encontrada' });
+        }
+
+        // Calcular estatísticas usando agregação
+        const [stats] = await require('../config/database').query(`
+            SELECT 
+                COUNT(CASE WHEN status = 'vendido' THEN 1 END) as vendidos,
+                COUNT(CASE WHEN status = 'reservado' THEN 1 END) as reservados,
+                COUNT(CASE WHEN status = 'disponivel' THEN 1 END) as disponiveis
+            FROM Bilhetes 
+            WHERE rifaId = :rifaId
+        `, {
+            replacements: { rifaId: rifa.id },
+            type: require('sequelize').QueryTypes.SELECT
+        });
+
+        res.json({
+            ...rifa.toJSON(),
+            bilhetesVendidos: parseInt(stats.vendidos) || 0,
+            bilhetesReservados: parseInt(stats.reservados) || 0,
+            bilhetesDisponiveis: parseInt(stats.disponiveis) || 0
+        });
+    } catch (error) {
+        console.error('Erro ao buscar rifa por slug:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// Rota pública para buscar uma rifa específica por ID (manter para compatibilidade)
 router.get('/publica/:id', async (req, res) => {
     try {
         // Buscar rifa sem carregar todos os bilhetes
         const rifa = await Rifa.findByPk(req.params.id, {
-            attributes: ['id', 'titulo', 'descricao', 'valorBilhete', 'quantidadeBilhetes', 'dataInicio', 'dataFim', 'status', 'imagemUrl', 'chavePix']
+            attributes: ['id', 'titulo', 'slug', 'descricao', 'valorBilhete', 'quantidadeBilhetes', 'dataInicio', 'dataFim', 'status', 'imagemUrl', 'chavePix']
         });
 
         if (!rifa) {

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiShare2, FiGift, FiCalendar, FiUsers, FiCreditCard } from 'react-icons/fi';
 
 const RifaPublica = () => {
-    const { id } = useParams();
+    const { slug, id } = useParams();
     const navigate = useNavigate();
     const [rifa, setRifa] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ const RifaPublica = () => {
 
     useEffect(() => {
         carregarRifa();
-    }, [id]);
+    }, [slug, id]);
 
     useEffect(() => {
         if (rifa && rifa.valorBilhete) {
@@ -34,7 +34,18 @@ const RifaPublica = () => {
 
     const carregarRifa = async () => {
         try {
-            const response = await fetch(`https://sorteio-online-production.up.railway.app/api/publico/publica/${id}`);
+            let url;
+            if (slug) {
+                // Usar rota por slug
+                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/slug/${slug}`;
+            } else if (id) {
+                // Usar rota por ID (compatibilidade)
+                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/${id}`;
+            } else {
+                throw new Error('Parâmetro de rifa não encontrado');
+            }
+
+            const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
                 setRifa(data);
@@ -101,7 +112,7 @@ const RifaPublica = () => {
                 const participanteData = await participanteResponse.json();
 
                 // Redirecionar para página de pagamento com os dados
-                navigate(`/pagamento/${id}`, {
+                navigate(`/pagamento/${rifa.id}`, {
                     state: {
                         participante: participanteData,
                         quantidade: quantidade,
@@ -128,7 +139,7 @@ const RifaPublica = () => {
 
         setLoadingVerificacao(true);
         try {
-            const response = await fetch(`https://sorteio-online-production.up.railway.app/api/publico/publica/${id}/verificar-numeros`, {
+            const response = await fetch(`https://sorteio-online-production.up.railway.app/api/publico/publica/${rifa.id}/verificar-numeros`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

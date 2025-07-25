@@ -6,6 +6,11 @@ const Rifa = sequelize.define('Rifa', {
         type: DataTypes.STRING,
         allowNull: false,
     },
+    slug: {
+        type: DataTypes.STRING,
+        allowNull: false,
+        unique: true,
+    },
     descricao: {
         type: DataTypes.TEXT,
         allowNull: true,

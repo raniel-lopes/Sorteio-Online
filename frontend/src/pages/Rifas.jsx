@@ -281,7 +281,7 @@ const Rifas = () => {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                const link = `${window.location.origin}/rifa/${rifa.id}`;
+                                                const link = `${window.location.origin}/rifa/${rifa.slug || rifa.id}`;
                                                 navigator.clipboard.writeText(link);
                                                 alert('Link da rifa copiado para a área de transferência!');
                                             }}
@@ -292,7 +292,7 @@ const Rifas = () => {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                const link = `${window.location.origin}/rifa/${rifa.id}`;
+                                                const link = `${window.location.origin}/rifa/${rifa.slug || rifa.id}`;
                                                 if (navigator.share) {
                                                     navigator.share({
                                                         title: rifa.titulo,

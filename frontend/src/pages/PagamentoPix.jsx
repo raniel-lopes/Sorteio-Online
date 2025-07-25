@@ -3,7 +3,7 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { FiCopy, FiCheck, FiCreditCard, FiUpload } from 'react-icons/fi';
 
 const PagamentoPix = () => {
-    const { id } = useParams();
+    const { id } = useParams(); // Manter compatibilidade com URLs antigas
     const location = useLocation();
     const navigate = useNavigate();
     const [rifa, setRifa] = useState(null);
@@ -19,12 +19,23 @@ const PagamentoPix = () => {
 
     const carregarRifa = async () => {
         try {
-            const timestamp = Date.now(); // Evitar cache
-            const response = await fetch(`https://sorteio-online-production.up.railway.app/api/publico/publica/${id}?t=${timestamp}`);
+            // Detectar se é um slug ou ID numérico para compatibilidade
+            const isNumeric = /^\d+$/.test(id);
+            let url;
+            
+            if (isNumeric) {
+                // URL antiga com ID
+                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/${id}`;
+            } else {
+                // URL nova com slug
+                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/slug/${id}`;
+            }
+            
+            const response = await fetch(`${url}?t=${Date.now()}`);
             if (response.ok) {
                 const data = await response.json();
-                console.log('🔍 Dados da rifa carregados:', data); // Debug
-                console.log('🔑 Chave PIX da rifa:', data.chavePix); // Debug
+                console.log('🔍 Dados da rifa carregados:', data);
+                console.log('🔑 Chave PIX da rifa:', data.chavePix);
                 setRifa(data);
             }
         } catch (error) {
@@ -51,6 +62,12 @@ const PagamentoPix = () => {
                 <div className="text-center">
                     <h1 className="text-2xl font-bold text-gray-800 mb-4">Rifa não encontrada</h1>
                     <p className="text-gray-600">A rifa que você está procurando não existe ou foi removida.</p>
+                    <button
+                        onClick={() => navigate('/')}
+                        className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg"
+                    >
+                        Voltar ao Início
+                    </button>
                 </div>
             </div>
         );
