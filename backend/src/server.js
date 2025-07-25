@@ -191,11 +191,11 @@ sequelize.authenticate()
         // Gerar slugs para rifas existentes SEMPRE
         await gerarSlugsParaRifasExistentes();
 
-        // Logar todos os slugs das rifas para debug
+        // Logar todos os slugs das rifas para debug (após update)
         const { Rifa } = require('./models');
-        const rifas = await Rifa.findAll({ attributes: ['id', 'titulo', 'slug'] });
-        console.log('📋 Rifas cadastradas:');
-        rifas.forEach(r => {
+        const rifasAtualizadas = await Rifa.findAll({ attributes: ['id', 'titulo', 'slug'] });
+        console.log('📋 Rifas cadastradas após geração de slugs:');
+        rifasAtualizadas.forEach(r => {
             console.log(`ID: ${r.id} | Título: ${r.titulo} | Slug: ${r.slug}`);
         });
     })
