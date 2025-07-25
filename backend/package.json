@@ -8,8 +8,7 @@
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
     "migrate": "npx sequelize-cli db:migrate",
-    "migrate:generate-slugs": "node gerar-slugs-existentes.js",
-    "postinstall": "npm run migrate && npm run migrate:generate-slugs"
+    "migrate:generate-slugs": "node gerar-slugs-existentes.js"
   },
   "repository": {
     "type": "git",
