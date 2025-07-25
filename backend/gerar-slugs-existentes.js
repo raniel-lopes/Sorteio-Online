@@ -24,11 +24,11 @@ async function generateUniqueSlug(titulo, excludeId = null) {
         }
 
         const existingRifa = await Rifa.findOne({ where: whereClause });
-        
+
         if (!existingRifa) {
             return slug;
         }
-        
+
         slug = `${baseSlug}-${counter}`;
         counter++;
     }
@@ -37,7 +37,7 @@ async function generateUniqueSlug(titulo, excludeId = null) {
 async function gerarSlugsParaRifasExistentes() {
     try {
         console.log('Buscando rifas sem slug...');
-        
+
         const rifasSemSlug = await Rifa.findAll({
             where: {
                 slug: null
@@ -48,9 +48,9 @@ async function gerarSlugsParaRifasExistentes() {
 
         for (const rifa of rifasSemSlug) {
             const slug = await generateUniqueSlug(rifa.titulo, rifa.id);
-            
+
             await rifa.update({ slug });
-            
+
             console.log(`Rifa "${rifa.titulo}" -> slug: "${slug}"`);
         }
 

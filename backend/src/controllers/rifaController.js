@@ -23,12 +23,12 @@ async function generateUniqueSlug(titulo, rifaId = null) {
         if (rifaId) {
             whereClause.id = { [Op.ne]: rifaId };
         }
-        
+
         const existingRifa = await Rifa.findOne({ where: whereClause });
         if (!existingRifa) {
             return slug;
         }
-        
+
         slug = `${baseSlug}-${counter}`;
         counter++;
     }

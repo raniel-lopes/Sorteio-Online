@@ -22,7 +22,7 @@ const PagamentoPix = () => {
             // Detectar se é um slug ou ID numérico para compatibilidade
             const isNumeric = /^\d+$/.test(id);
             let url;
-            
+
             if (isNumeric) {
                 // URL antiga com ID
                 url = `https://sorteio-online-production.up.railway.app/api/publico/publica/${id}`;
@@ -30,7 +30,7 @@ const PagamentoPix = () => {
                 // URL nova com slug
                 url = `https://sorteio-online-production.up.railway.app/api/publico/publica/slug/${id}`;
             }
-            
+
             const response = await fetch(`${url}?t=${Date.now()}`);
             if (response.ok) {
                 const data = await response.json();
