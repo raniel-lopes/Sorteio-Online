@@ -8,7 +8,7 @@ const Rifa = sequelize.define('Rifa', {
     },
     slug: {
         type: DataTypes.STRING,
-        allowNull: false,
+        allowNull: true, // Permitir null temporariamente para rifas existentes
         unique: true,
     },
     descricao: {
