@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiShare2, FiGift, FiCalendar, FiUsers, FiCreditCard } from 'react-icons/fi';
 
 const RifaPublica = () => {
-    const { slug, id } = useParams();
+    const { slug, id } = useParams(); // slug da rota principal, id da rota de compatibilidade
     const navigate = useNavigate();
     const [rifa, setRifa] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -35,23 +35,35 @@ const RifaPublica = () => {
     const carregarRifa = async () => {
         try {
             let url;
-            if (slug) {
-                // Usar rota por slug
-                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/slug/${slug}`;
-            } else if (id) {
-                // Usar rota por ID (compatibilidade)
-                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/${id}`;
-            } else {
+            const rifaParam = slug || id; // Usar slug primeiro, senão id
+            
+            if (!rifaParam) {
                 throw new Error('Parâmetro de rifa não encontrado');
             }
+            
+            // Detectar se é um slug ou ID numérico
+            const isNumeric = /^\d+$/.test(rifaParam);
+            
+            if (isNumeric) {
+                // Usar rota por ID (compatibilidade)
+                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/${rifaParam}`;
+            } else {
+                // Usar rota por slug
+                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/slug/${rifaParam}`;
+            }
+            
+            console.log('🔍 Carregando rifa da URL:', url); // Debug
 
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
+                console.log('✅ Rifa carregada:', data); // Debug
                 setRifa(data);
+            } else {
+                console.error('❌ Erro na resposta:', response.status, response.statusText);
             }
         } catch (error) {
-            console.error('Erro ao carregar rifa:', error);
+            console.error('❌ Erro ao carregar rifa:', error);
         } finally {
             setLoading(false);
         }

@@ -281,9 +281,18 @@ const Rifas = () => {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                const link = `${window.location.origin}/rifa/${rifa.slug || rifa.id}`;
+                                                // Gerar slug temporário se não existir
+                                                const slug = rifa.slug || rifa.titulo
+                                                    .toLowerCase()
+                                                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                                                    .replace(/[^a-z0-9]+/g, '-')
+                                                    .replace(/^-+|-+$/g, '')
+                                                    .substring(0, 50);
+                                                
+                                                const link = `${window.location.origin}/rifa/${slug || rifa.id}`;
                                                 navigator.clipboard.writeText(link);
                                                 alert('Link da rifa copiado para a área de transferência!');
+                                                console.log('🔗 Link copiado:', link); // Debug
                                             }}
                                             className="text-green-600 hover:text-green-900"
                                             title="Copiar link público da rifa"
@@ -292,7 +301,16 @@ const Rifas = () => {
                                         </button>
                                         <button
                                             onClick={() => {
-                                                const link = `${window.location.origin}/rifa/${rifa.slug || rifa.id}`;
+                                                // Gerar slug temporário se não existir
+                                                const slug = rifa.slug || rifa.titulo
+                                                    .toLowerCase()
+                                                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                                                    .replace(/[^a-z0-9]+/g, '-')
+                                                    .replace(/^-+|-+$/g, '')
+                                                    .substring(0, 50);
+                                                
+                                                const link = `${window.location.origin}/rifa/${slug || rifa.id}`;
+                                                console.log('🔗 Link para compartilhar:', link); // Debug
                                                 if (navigator.share) {
                                                     navigator.share({
                                                         title: rifa.titulo,

@@ -52,14 +52,8 @@ exports.createRifa = async (req, res) => {
             return res.status(400).json({ error: 'Quantidade de números deve estar entre 10 e 100.000' });
         }
 
-        // Gerar slug único (apenas se a coluna existir)
-        let slug;
-        try {
-            slug = await generateUniqueSlug(titulo);
-        } catch (error) {
-            console.log('Campo slug ainda não existe, criando rifa sem slug');
-            slug = null;
-        }
+        // Gerar slug único
+        const slug = await generateUniqueSlug(titulo);
 
         // Configurar URL da imagem se foi enviada
         let imagemUrl = null;
@@ -67,9 +61,10 @@ exports.createRifa = async (req, res) => {
             imagemUrl = `/uploads/rifas/${req.file.filename}`;
         }
 
-        // Dados da rifa
-        const rifaData = {
+        // Criar a rifa
+        const rifa = await Rifa.create({
             titulo,
+            slug,
             descricao,
             premio,
             valorBilhete: parseFloat(valorBilhete),
@@ -78,15 +73,7 @@ exports.createRifa = async (req, res) => {
             dataFim: new Date(dataFim),
             imagemUrl: imagemUrl,
             chavePix
-        };
-
-        // Adicionar slug apenas se foi gerado com sucesso
-        if (slug) {
-            rifaData.slug = slug;
-        }
-
-        // Criar a rifa
-        const rifa = await Rifa.create(rifaData);
+        });
 
         // Criar os bilhetes automaticamente
         const bilhetes = [];

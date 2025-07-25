@@ -20,8 +20,8 @@ router.get('/publica/slug/:slug', async (req, res) => {
                 COUNT(CASE WHEN status = 'vendido' THEN 1 END) as vendidos,
                 COUNT(CASE WHEN status = 'reservado' THEN 1 END) as reservados,
                 COUNT(CASE WHEN status = 'disponivel' THEN 1 END) as disponiveis
-            FROM Bilhetes 
-            WHERE rifaId = :rifaId
+            FROM "Bilhetes" 
+            WHERE "rifaId" = :rifaId
         `, {
             replacements: { rifaId: rifa.id },
             type: require('sequelize').QueryTypes.SELECT
