@@ -2,9 +2,53 @@ const express = require('express');
 const router = express.Router();
 const { Rifa, Bilhete, Participante } = require('../models');
 
-// Rota pública para buscar uma rifa por slug (temporariamente desabilitada)
+// Rota pública para buscar uma rifa por slug
 router.get('/publica/slug/:slug', async (req, res) => {
-    return res.status(501).json({ error: 'Busca por slug ainda não implementada. Use o ID da rifa.' });
+    try {
+        console.log('🔍 Buscando rifa por slug:', req.params.slug);
+        
+        // Buscar rifa por slug
+        const rifa = await Rifa.findOne({
+            where: { slug: req.params.slug },
+            attributes: ['id', 'titulo', 'descricao', 'valorBilhete', 'quantidadeBilhetes', 'dataInicio', 'dataFim', 'status', 'imagemUrl', 'chavePix', 'slug']
+        });
+
+        if (!rifa) {
+            console.log('❌ Rifa não encontrada para slug:', req.params.slug);
+            return res.status(404).json({ error: 'Rifa não encontrada' });
+        }
+
+        console.log('✅ Rifa encontrada:', rifa.titulo);
+
+        // Calcular estatísticas usando agregação (muito mais rápido)
+        const [stats] = await require('../config/database').query(`
+            SELECT 
+                COUNT(CASE WHEN status = 'vendido' THEN 1 END) as vendidos,
+                COUNT(CASE WHEN status = 'reservado' THEN 1 END) as reservados
+            FROM "Bilhetes" 
+            WHERE "rifaId" = :rifaId
+        `, {
+            replacements: { rifaId: rifa.id },
+            type: require('sequelize').QueryTypes.SELECT
+        });
+
+        const bilhetesVendidos = parseInt(stats.vendidos) || 0;
+        const bilhetesReservados = parseInt(stats.reservados) || 0;
+
+        const rifaComStats = {
+            ...rifa.toJSON(),
+            bilhetesVendidos,
+            bilhetesReservados,
+            bilhetesDisponiveis: rifa.quantidadeBilhetes - bilhetesVendidos - bilhetesReservados
+        };
+
+        console.log('📊 Estatísticas calculadas para slug:', req.params.slug);
+        res.json(rifaComStats);
+
+    } catch (error) {
+        console.error('❌ Erro ao buscar rifa por slug:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
 });
 
 // Rota pública para buscar uma rifa específica por ID (manter para compatibilidade)

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiShare2, FiGift, FiCalendar, FiUsers, FiCreditCard } from 'react-icons/fi';
 
 const RifaPublica = () => {
-    const { id } = useParams(); // Usar apenas ID temporariamente
+    const { slug, id } = useParams(); // Capturar tanto slug quanto id
     const navigate = useNavigate();
     const [rifa, setRifa] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -20,9 +20,13 @@ const RifaPublica = () => {
         email: ''
     });
 
+    // Determinar qual parâmetro está sendo usado
+    const parametro = slug || id;
+    const isSlug = !!slug; // true se for slug, false se for id
+
     useEffect(() => {
         carregarRifa();
-    }, [id]);
+    }, [parametro]);
 
     useEffect(() => {
         if (rifa && rifa.valorBilhete) {
@@ -34,20 +38,34 @@ const RifaPublica = () => {
 
     const carregarRifa = async () => {
         try {
-            if (!id) {
-                throw new Error('ID da rifa não encontrado');
+            if (!parametro) {
+                throw new Error('Parâmetro da rifa não encontrado');
             }
 
-            const url = `https://sorteio-online-production.up.railway.app/api/publico/publica/${id}`;
-            console.log('🔍 Carregando rifa da URL:', url); // Debug
+            // Detectar se é slug (contém letras/hífens) ou ID (apenas números)
+            const isNumeric = /^\d+$/.test(parametro);
+            const isSlugParam = !isNumeric;
+
+            let url;
+            if (isSlugParam) {
+                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/slug/${parametro}`;
+                console.log('🔍 Carregando rifa por SLUG:', parametro);
+            } else {
+                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/${parametro}`;
+                console.log('🔍 Carregando rifa por ID:', parametro);
+            }
+
+            console.log('🔍 URL da requisição:', url);
 
             const response = await fetch(url);
             if (response.ok) {
                 const data = await response.json();
-                console.log('✅ Rifa carregada:', data); // Debug
+                console.log('✅ Rifa carregada:', data);
                 setRifa(data);
             } else {
                 console.error('❌ Erro na resposta:', response.status, response.statusText);
+                const errorData = await response.json().catch(() => ({ error: 'Erro desconhecido' }));
+                console.error('❌ Detalhes do erro:', errorData);
             }
         } catch (error) {
             console.error('❌ Erro ao carregar rifa:', error);
@@ -99,7 +117,7 @@ const RifaPublica = () => {
                     nome: participante.nome,
                     celular: participante.celular,
                     email: participante.email,
-                    rifaId: id,
+                    rifaId: rifa.id, // Usar rifa.id que funcionará tanto para slug quanto ID
                     quantidadeCotas: quantidade,
                     numerosReservados: numerosReservados,
                     valorTotal: valorTotal,

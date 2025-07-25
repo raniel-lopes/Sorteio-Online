@@ -54,10 +54,9 @@ function App() {
         {/* Página de login */}
         <Route path="/" element={<LoginPage />} />
 
-        {/* Página pública da rifa - sem layout do sistema */}
-        <Route path="/rifa/:id" element={<RifaPublica />} />
-        {/* Rota para slugs (quando implementarmos) - temporariamente desabilitada */}
-        {/* <Route path="/rifa/slug/:slug" element={<RifaPublica />} /> */}
+        {/* Rotas públicas sem autenticação e sem layout do sistema */}
+        <Route path="/rifa/:slug" element={<RifaPublica />} />
+        <Route path="/rifa/id/:id" element={<RifaPublica />} />
 
         {/* Página de pagamento PIX - sem layout do sistema */}
         <Route path="/pagamento/:id" element={<PagamentoPix />} />
