@@ -23,11 +23,11 @@ async function generateUniqueSlug(titulo, excludeId = null) {
         }
 
         const existingRifa = await Rifa.findOne({ where: whereClause });
-        
+
         if (!existingRifa) {
             return slug;
         }
-        
+
         slug = `${baseSlug}-${counter}`;
         counter++;
     }
@@ -36,7 +36,7 @@ async function generateUniqueSlug(titulo, excludeId = null) {
 async function gerarSlugsParaRifasExistentes() {
     try {
         console.log('🔍 Conectando ao banco de dados...');
-        
+
         // Verificar se a coluna slug existe
         const rifasSemSlug = await Rifa.findAll({
             where: {
@@ -57,9 +57,9 @@ async function gerarSlugsParaRifasExistentes() {
         for (const rifa of rifasSemSlug) {
             try {
                 const slug = await generateUniqueSlug(rifa.titulo, rifa.id);
-                
+
                 await rifa.update({ slug });
-                
+
                 console.log(`✅ Rifa "${rifa.titulo}" -> slug: "${slug}"`);
             } catch (error) {
                 console.error(`❌ Erro ao processar rifa "${rifa.titulo}":`, error.message);

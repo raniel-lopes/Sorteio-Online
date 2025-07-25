@@ -52,19 +52,15 @@ exports.createRifa = async (req, res) => {
             return res.status(400).json({ error: 'Quantidade de números deve estar entre 10 e 100.000' });
         }
 
-        // Gerar slug único
-        const slug = await generateUniqueSlug(titulo);
-
         // Configurar URL da imagem se foi enviada
         let imagemUrl = null;
         if (req.file) {
             imagemUrl = `/uploads/rifas/${req.file.filename}`;
         }
 
-        // Criar a rifa
+        // Criar a rifa (sem slug temporariamente)
         const rifa = await Rifa.create({
             titulo,
-            slug,
             descricao,
             premio,
             valorBilhete: parseFloat(valorBilhete),

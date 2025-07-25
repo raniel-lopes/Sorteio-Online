@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { FiShare2, FiGift, FiCalendar, FiUsers, FiCreditCard } from 'react-icons/fi';
 
 const RifaPublica = () => {
-    const { slug, id } = useParams(); // slug da rota principal, id da rota de compatibilidade
+    const { id } = useParams(); // Usar apenas ID temporariamente
     const navigate = useNavigate();
     const [rifa, setRifa] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ const RifaPublica = () => {
 
     useEffect(() => {
         carregarRifa();
-    }, [slug, id]);
+    }, [id]);
 
     useEffect(() => {
         if (rifa && rifa.valorBilhete) {
@@ -34,24 +34,11 @@ const RifaPublica = () => {
 
     const carregarRifa = async () => {
         try {
-            let url;
-            const rifaParam = slug || id; // Usar slug primeiro, senão id
-            
-            if (!rifaParam) {
-                throw new Error('Parâmetro de rifa não encontrado');
+            if (!id) {
+                throw new Error('ID da rifa não encontrado');
             }
-            
-            // Detectar se é um slug ou ID numérico
-            const isNumeric = /^\d+$/.test(rifaParam);
-            
-            if (isNumeric) {
-                // Usar rota por ID (compatibilidade)
-                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/${rifaParam}`;
-            } else {
-                // Usar rota por slug
-                url = `https://sorteio-online-production.up.railway.app/api/publico/publica/slug/${rifaParam}`;
-            }
-            
+
+            const url = `https://sorteio-online-production.up.railway.app/api/publico/publica/${id}`;
             console.log('🔍 Carregando rifa da URL:', url); // Debug
 
             const response = await fetch(url);
