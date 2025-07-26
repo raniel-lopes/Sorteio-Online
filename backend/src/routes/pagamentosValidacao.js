@@ -50,6 +50,8 @@ router.post('/comprovante', upload.single('comprovante'), async (req, res) => {
                 {
                     model: Bilhete,
                     as: 'bilhetes',
+                    where: { status: 'reservado' },
+                    required: false,
                     include: [
                         {
                             model: Rifa,
@@ -64,9 +66,10 @@ router.post('/comprovante', upload.single('comprovante'), async (req, res) => {
             return res.status(404).json({ error: 'Participante não encontrado' });
         }
 
-        // Calcular valor total baseado nos bilhetes e coletar números reservados
-        const numerosReservados = participante.bilhetes.map(b => b.numero);
-        const valorTotal = participante.bilhetes.reduce((total, bilhete) => {
+        // Calcular valor total baseado apenas nos bilhetes reservados e coletar números reservados
+        const bilhetesReservados = participante.bilhetes || [];
+        const numerosReservados = bilhetesReservados.map(b => b.numero);
+        const valorTotal = bilhetesReservados.reduce((total, bilhete) => {
             return total + (parseFloat(bilhete.valor) || 0);
         }, 0);
 
