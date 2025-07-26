@@ -69,18 +69,39 @@ router.post('/comprovante', upload.single('comprovante'), async (req, res) => {
             return total + (parseFloat(bilhete.valor) || 0);
         }, 0);
 
-        // Criar registro de pagamento
-        const pagamento = await Pagamento.create({
-            participanteId: participanteId,
-            valor: valorTotal,
-            metodoPagamento: 'pix',
-            status: 'pendente',
-            comprovanteUrl: `/uploads/comprovantes/${req.file.filename}`,
-            dadosPagamento: {
-                nomeArquivo: req.file.originalname,
-                tamanhoArquivo: req.file.size
+        // Procurar pagamento pendente existente para o participante
+        let pagamento = await Pagamento.findOne({
+            where: {
+                participanteId: participanteId,
+                status: 'pendente'
             }
         });
+
+        if (pagamento) {
+            // Atualizar pagamento existente
+            await pagamento.update({
+                valor: valorTotal,
+                metodoPagamento: 'pix',
+                comprovanteUrl: `/uploads/comprovantes/${req.file.filename}`,
+                dadosPagamento: {
+                    nomeArquivo: req.file.originalname,
+                    tamanhoArquivo: req.file.size
+                }
+            });
+        } else {
+            // Criar novo pagamento se não existir
+            pagamento = await Pagamento.create({
+                participanteId: participanteId,
+                valor: valorTotal,
+                metodoPagamento: 'pix',
+                status: 'pendente',
+                comprovanteUrl: `/uploads/comprovantes/${req.file.filename}`,
+                dadosPagamento: {
+                    nomeArquivo: req.file.originalname,
+                    tamanhoArquivo: req.file.size
+                }
+            });
+        }
 
         res.json({
             message: 'Comprovante enviado com sucesso',
