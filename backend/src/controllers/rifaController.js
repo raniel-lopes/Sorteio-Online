@@ -58,7 +58,10 @@ exports.createRifa = async (req, res) => {
             imagemUrl = `/uploads/rifas/${req.file.filename}`;
         }
 
-        // Criar a rifa (sem slug temporariamente)
+        // Gerar slug único para a nova rifa
+        const slug = await generateUniqueSlug(titulo);
+
+        // Criar a rifa já com slug
         const rifa = await Rifa.create({
             titulo,
             descricao,
@@ -68,7 +71,8 @@ exports.createRifa = async (req, res) => {
             dataInicio: new Date(dataInicio),
             dataFim: new Date(dataFim),
             imagemUrl: imagemUrl,
-            chavePix
+            chavePix,
+            slug
         });
 
         // Criar os bilhetes automaticamente
