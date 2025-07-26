@@ -51,8 +51,16 @@ function App() {
   return (
     <Router>
       <Routes>
+        {/* Landing page simples */}
+        <Route path="/" element={
+          <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+            <img src="/logo192.png" alt="Logo" className="w-32 h-32 mb-6" />
+            <h1 className="text-3xl font-bold text-gray-800 mb-2">Sorteios Online</h1>
+            <p className="text-gray-500">Em breve uma landing page incrível aqui!</p>
+          </div>
+        } />
         {/* Página de login */}
-        <Route path="/" element={<LoginPage />} />
+        <Route path="/admin" element={<LoginPage />} />
 
         {/* Rotas públicas sem autenticação e sem layout do sistema */}
         <Route path="/sorteio/:slug" element={<RifaPublica />} />
