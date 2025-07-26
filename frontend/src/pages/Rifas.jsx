@@ -289,7 +289,7 @@ const Rifas = () => {
                                                     .replace(/^-+|-+$/g, '')
                                                     .substring(0, 50);
 
-                                                const link = `${window.location.origin}/rifa/${slug || rifa.id}`;
+                                                const link = `${window.location.origin}/sorteio/${slug || rifa.id}`;
                                                 navigator.clipboard.writeText(link);
                                                 alert('Link da rifa copiado para a área de transferência!');
                                                 console.log('🔗 Link copiado:', link); // Debug
@@ -309,7 +309,7 @@ const Rifas = () => {
                                                     .replace(/^-+|-+$/g, '')
                                                     .substring(0, 50);
 
-                                                const link = `${window.location.origin}/rifa/${slug || rifa.id}`;
+                                                const link = `${window.location.origin}/sorteio/${slug || rifa.id}`;
                                                 console.log('🔗 Link para compartilhar:', link); // Debug
                                                 if (navigator.share) {
                                                     navigator.share({
