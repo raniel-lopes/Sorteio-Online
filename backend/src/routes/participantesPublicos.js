@@ -30,65 +30,51 @@ router.post('/participantes', async (req, res) => {
             return res.status(404).json({ error: 'Rifa não encontrada' });
         }
 
-        // Verificar se já existe um participante com o mesmo celular
+        // Verificar se já existe um participante com o mesmo celular E rifaId
         let participante = await Participante.findOne({
             where: {
-                celular: celular
+                celular: celular,
+                rifaId: rifaId
             }
         });
 
         if (!participante) {
-            // Criar novo participante
+            // Criar novo participante (agora cada rifa pode ter o mesmo celular/email)
             try {
                 participante = await Participante.create({
                     nome: nome,
                     celular,
                     email,
-                    cpf
+                    cpf,
+                    rifaId: rifaId
                 });
             } catch (error) {
-                // Tratamento específico para erro de e-mail duplicado
-                if (error.name === 'SequelizeUniqueConstraintError' && error.errors && error.errors[0] && error.errors[0].path === 'email') {
+                // Tratamento específico para erro de constraint
+                if (error.name === 'SequelizeUniqueConstraintError') {
                     return res.status(400).json({
-                        error: 'Este email já está sendo usado por outro participante'
+                        error: 'Dados duplicados. Verifique se as informações já não foram cadastradas.',
+                        detalhe: error.message,
+                        stack: error.stack
                     });
                 }
-                // Outros erros
                 throw error;
             }
         } else {
-            // Se encontrou um participante existente, atualizar dados se necessário
+            // Se encontrou um participante existente para a mesma rifa, atualizar dados se necessário
             let dadosAtualizados = false;
 
             if (participante.nome !== nome) {
                 participante.nome = nome;
                 dadosAtualizados = true;
             }
-
             if (email && participante.email !== email) {
-                // Verificar se o novo email já existe em outro participante
-                const emailExistente = await Participante.findOne({
-                    where: {
-                        email: email,
-                        id: { [require('sequelize').Op.ne]: participante.id } // Excluir o próprio participante
-                    }
-                });
-
-                if (emailExistente) {
-                    return res.status(400).json({
-                        error: 'Este email já está sendo usado por outro participante'
-                    });
-                }
-
                 participante.email = email;
                 dadosAtualizados = true;
             }
-
             if (cpf && participante.cpf !== cpf) {
                 participante.cpf = cpf;
                 dadosAtualizados = true;
             }
-
             if (dadosAtualizados) {
                 await participante.save();
             }
