@@ -6,6 +6,7 @@ const notificacaoService = require('../services/notificacaoService');
 // Rota pública para criar participante (sem autenticação)
 router.post('/participantes', async (req, res) => {
     try {
+        console.log('Body recebido:', req.body);
         const {
             nome,
             celular,
@@ -19,6 +20,7 @@ router.post('/participantes', async (req, res) => {
         } = req.body;
 
         if (!nome || !celular || !rifaId) {
+            console.log('Erro de validação: Nome, celular e rifaId são obrigatórios');
             return res.status(400).json({ error: 'Nome, celular e rifaId são obrigatórios' });
         }
 
@@ -206,6 +208,9 @@ router.post('/participantes', async (req, res) => {
         });
     } catch (error) {
         console.error('Erro ao criar participante público:', error);
+        if (error && error.stack) {
+            console.error('Stack trace:', error.stack);
+        }
 
         // Tratamento específico para erros de constraint única
         if (error.name === 'SequelizeUniqueConstraintError') {
@@ -219,7 +224,8 @@ router.post('/participantes', async (req, res) => {
             });
         }
 
-        res.status(500).json({ error: 'Erro interno do servidor' });
+        // Retornar mensagem de erro detalhada para facilitar depuração
+        res.status(500).json({ error: 'Erro interno do servidor', detalhe: error && error.message ? error.message : error });
     }
 });
 
