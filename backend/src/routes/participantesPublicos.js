@@ -207,6 +207,7 @@ router.post('/participantes', async (req, res) => {
             pagamentoId: pagamento.id
         });
     } catch (error) {
+        // Log detalhado do erro
         console.error('Erro ao criar participante público:', error);
         if (error && error.stack) {
             console.error('Stack trace:', error.stack);
@@ -216,16 +217,24 @@ router.post('/participantes', async (req, res) => {
         if (error.name === 'SequelizeUniqueConstraintError') {
             if (error.errors && error.errors[0] && error.errors[0].path === 'email') {
                 return res.status(400).json({
-                    error: 'Este email já está sendo usado por outro participante'
+                    error: 'Este email já está sendo usado por outro participante',
+                    detalhe: error.message,
+                    stack: error.stack
                 });
             }
             return res.status(400).json({
-                error: 'Dados duplicados. Verifique se as informações já não foram cadastradas.'
+                error: 'Dados duplicados. Verifique se as informações já não foram cadastradas.',
+                detalhe: error.message,
+                stack: error.stack
             });
         }
 
         // Retornar mensagem de erro detalhada para facilitar depuração
-        res.status(500).json({ error: 'Erro interno do servidor', detalhe: error && error.message ? error.message : error });
+        res.status(500).json({
+            error: 'Erro interno do servidor',
+            detalhe: error && error.message ? error.message : error,
+            stack: error && error.stack ? error.stack : undefined
+        });
     }
 });
 
