@@ -74,24 +74,24 @@ const gerarSlugsParaRifasExistentes = async () => {
             let baseSlug = slugify(rifa.titulo);
             let slug = baseSlug;
             let counter = 1;
-
             // Verificar se slug já existe
             while (true) {
-                const existingRifa = await Rifa.findOne({
-                    where: {
+                const existingRifa = await Rifa.findOne({ 
+                    where: { 
                         slug,
                         id: { [Op.ne]: rifa.id }
-                    }
+                    } 
                 });
-
                 if (!existingRifa) break;
-
                 slug = `${baseSlug}-${counter}`;
                 counter++;
             }
-
-            await rifa.update({ slug });
-            console.log(`✅ Rifa "${rifa.titulo}" -> slug: "${slug}"`);
+            // Forçar update via SQL puro para garantir persistência
+            await sequelize.query(
+                `UPDATE "Rifas" SET "slug" = :slug WHERE "id" = :id`,
+                { replacements: { slug, id: rifa.id } }
+            );
+            console.log(`✅ (SQL) Rifa "${rifa.titulo}" -> slug: "${slug}"`);
         }
 
         console.log('🎉 Geração de slugs concluída!');
