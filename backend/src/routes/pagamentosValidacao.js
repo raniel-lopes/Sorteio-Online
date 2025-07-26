@@ -85,7 +85,9 @@ router.post('/comprovante', upload.single('comprovante'), async (req, res) => {
             nomeArquivo: req.file.originalname,
             tamanhoArquivo: req.file.size,
             numerosReservados: numerosReservados,
-            valorTotal: valorTotal
+            valorTotal: valorTotal,
+            rifaTitulo: bilhetesReservados[0]?.rifa?.titulo || '',
+            quantidadeBilhetes: bilhetesReservados.length
         };
         if (pagamento) {
             // Atualizar pagamento existente
