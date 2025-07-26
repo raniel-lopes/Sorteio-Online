@@ -121,7 +121,13 @@ const ConfirmarPagamento = () => {
                                 <div className="flex justify-between">
                                     <span>Valor Total:</span>
                                     <span className="font-medium text-green-600">
-                                        R$ {pagamento?.dadosPagamento?.valorTotal ? Number(pagamento.dadosPagamento.valorTotal).toFixed(2) : '-'}
+                                        R$ {
+                                            pagamento?.dadosPagamento?.valorTotal && Number(pagamento.dadosPagamento.valorTotal) > 0
+                                                ? Number(pagamento.dadosPagamento.valorTotal).toFixed(2)
+                                                : pagamento?.valor
+                                                    ? Number(pagamento.valor).toFixed(2)
+                                                    : '-'
+                                        }
                                     </span>
                                 </div>
                             </div>

@@ -146,7 +146,7 @@ const RifaPublica = () => {
                         errorMsg = errorData.error;
                         if (errorData.detalhe) errorMsg += `\n${errorData.detalhe}`;
                     }
-                } catch {}
+                } catch { }
                 alert(errorMsg);
                 throw new Error(errorMsg);
             }
