@@ -225,6 +225,9 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             });
         }
 
+        // Buscar título da rifa
+        const rifa = await Rifa.findByPk(rifaId, { attributes: ['id', 'titulo'] });
+
         // Formatar resposta
         const resultado = {
             participante: {
@@ -233,13 +236,15 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
                 celular: bilhetes[0].participante_celular,
                 email: bilhetes[0].participante_email
             },
+            rifa: rifa ? { id: rifa.id, titulo: rifa.titulo } : null,
             bilhetes: bilhetes.map(b => ({
                 id: b.id,
                 numero: b.numero,
                 status: b.status,
                 dataVenda: b.dataVenda
             })),
-            total: bilhetes.length
+            quantidadeBilhetes: bilhetes.length,
+            total: bilhetes.length // compatibilidade
         };
 
         res.json(resultado);
