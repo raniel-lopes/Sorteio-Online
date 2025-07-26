@@ -64,7 +64,8 @@ router.post('/comprovante', upload.single('comprovante'), async (req, res) => {
             return res.status(404).json({ error: 'Participante não encontrado' });
         }
 
-        // Calcular valor total baseado nos bilhetes
+        // Calcular valor total baseado nos bilhetes e coletar números reservados
+        const numerosReservados = participante.bilhetes.map(b => b.numero);
         const valorTotal = participante.bilhetes.reduce((total, bilhete) => {
             return total + (parseFloat(bilhete.valor) || 0);
         }, 0);
@@ -77,16 +78,19 @@ router.post('/comprovante', upload.single('comprovante'), async (req, res) => {
             }
         });
 
+        const dadosPagamento = {
+            nomeArquivo: req.file.originalname,
+            tamanhoArquivo: req.file.size,
+            numerosReservados: numerosReservados,
+            valorTotal: valorTotal
+        };
         if (pagamento) {
             // Atualizar pagamento existente
             await pagamento.update({
                 valor: valorTotal,
                 metodoPagamento: 'pix',
                 comprovanteUrl: `/uploads/comprovantes/${req.file.filename}`,
-                dadosPagamento: {
-                    nomeArquivo: req.file.originalname,
-                    tamanhoArquivo: req.file.size
-                }
+                dadosPagamento
             });
         } else {
             // Criar novo pagamento se não existir
@@ -96,10 +100,7 @@ router.post('/comprovante', upload.single('comprovante'), async (req, res) => {
                 metodoPagamento: 'pix',
                 status: 'pendente',
                 comprovanteUrl: `/uploads/comprovantes/${req.file.filename}`,
-                dadosPagamento: {
-                    nomeArquivo: req.file.originalname,
-                    tamanhoArquivo: req.file.size
-                }
+                dadosPagamento
             });
         }
 

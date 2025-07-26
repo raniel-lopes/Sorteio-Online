@@ -37,12 +37,23 @@ router.post('/participantes', async (req, res) => {
 
         if (!participante) {
             // Criar novo participante
-            participante = await Participante.create({
-                nome: nome,
-                celular,
-                email,
-                cpf
-            });
+            try {
+                participante = await Participante.create({
+                    nome: nome,
+                    celular,
+                    email,
+                    cpf
+                });
+            } catch (error) {
+                // Tratamento específico para erro de e-mail duplicado
+                if (error.name === 'SequelizeUniqueConstraintError' && error.errors && error.errors[0] && error.errors[0].path === 'email') {
+                    return res.status(400).json({
+                        error: 'Este email já está sendo usado por outro participante'
+                    });
+                }
+                // Outros erros
+                throw error;
+            }
         } else {
             // Se encontrou um participante existente, atualizar dados se necessário
             let dadosAtualizados = false;

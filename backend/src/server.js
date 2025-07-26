@@ -76,11 +76,11 @@ const gerarSlugsParaRifasExistentes = async () => {
             let counter = 1;
             // Verificar se slug já existe
             while (true) {
-                const existingRifa = await Rifa.findOne({ 
-                    where: { 
+                const existingRifa = await Rifa.findOne({
+                    where: {
                         slug,
                         id: { [Op.ne]: rifa.id }
-                    } 
+                    }
                 });
                 if (!existingRifa) break;
                 slug = `${baseSlug}-${counter}`;
