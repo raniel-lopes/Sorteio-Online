@@ -138,11 +138,24 @@ const RifaPublica = () => {
                     }
                 });
             } else {
-                throw new Error('Erro ao criar participante');
+                // Tentar extrair mensagem detalhada do backend
+                let errorMsg = 'Erro ao criar participante';
+                try {
+                    const errorData = await participanteResponse.json();
+                    if (errorData && errorData.error) {
+                        errorMsg = errorData.error;
+                        if (errorData.detalhe) errorMsg += `\n${errorData.detalhe}`;
+                    }
+                } catch {}
+                alert(errorMsg);
+                throw new Error(errorMsg);
             }
         } catch (error) {
             console.error('Erro ao processar reserva:', error);
-            alert('Erro ao processar reserva. Tente novamente.');
+            // Não sobrescrever mensagem detalhada se já foi exibida
+            if (!error.message?.includes('Erro ao criar participante')) {
+                alert(error.message || 'Erro ao processar reserva. Tente novamente.');
+            }
         } finally {
             setLoading(false);
         }
