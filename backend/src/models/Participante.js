@@ -9,11 +9,12 @@ const Participante = sequelize.define('Participante', {
     celular: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true, // Celular como identificador único
+        // unique: true, // Removido para permitir múltiplas compras com mesmo celular
     },
     email: {
         type: DataTypes.STRING,
         allowNull: true,
+        // unique: true, // Garantir que não está unique
     },
     cpf: {
         type: DataTypes.STRING,

@@ -25,37 +25,54 @@ module.exports = {
             console.log('Constraint CPF não encontrada ou já removida');
         }
 
-        // Adicionar constraint unique no celular se não existir
+        // Remover constraint unique do celular se existir
         try {
             await queryInterface.sequelize.query(`
         DO $$ 
         BEGIN
-          IF NOT EXISTS (
+          IF EXISTS (
             SELECT 1 FROM pg_constraint 
             WHERE conname LIKE '%celular%' 
             AND conrelid = (SELECT oid FROM pg_class WHERE relname = 'Participantes')
           ) THEN
-            ALTER TABLE "Participantes" ADD CONSTRAINT "Participantes_celular_unique" UNIQUE ("celular");
+            EXECUTE 'ALTER TABLE "Participantes" DROP CONSTRAINT ' || (
+              SELECT conname FROM pg_constraint 
+              WHERE conname LIKE '%celular%' 
+              AND conrelid = (SELECT oid FROM pg_class WHERE relname = 'Participantes')
+              LIMIT 1
+            );
           END IF;
         END $$;
       `);
         } catch (error) {
-            console.log('Erro ao adicionar constraint unique no celular:', error.message);
+            console.log('Constraint CELULAR não encontrada ou já removida');
+        }
+
+        // Remover constraint unique do email se existir
+        try {
+            await queryInterface.sequelize.query(`
+        DO $$ 
+        BEGIN
+          IF EXISTS (
+            SELECT 1 FROM pg_constraint 
+            WHERE conname LIKE '%email%' 
+            AND conrelid = (SELECT oid FROM pg_class WHERE relname = 'Participantes')
+          ) THEN
+            EXECUTE 'ALTER TABLE "Participantes" DROP CONSTRAINT ' || (
+              SELECT conname FROM pg_constraint 
+              WHERE conname LIKE '%email%' 
+              AND conrelid = (SELECT oid FROM pg_class WHERE relname = 'Participantes')
+              LIMIT 1
+            );
+          END IF;
+        END $$;
+      `);
+        } catch (error) {
+            console.log('Constraint EMAIL não encontrada ou já removida');
         }
     },
 
     down: async (queryInterface, Sequelize) => {
-        // Reverter: remover unique do celular e adicionar no CPF
-        try {
-            await queryInterface.sequelize.query(`
-        ALTER TABLE "Participantes" DROP CONSTRAINT IF EXISTS "Participantes_celular_unique";
-      `);
-
-            await queryInterface.sequelize.query(`
-        ALTER TABLE "Participantes" ADD CONSTRAINT "Participantes_cpf_unique" UNIQUE ("cpf");
-      `);
-        } catch (error) {
-            console.log('Erro ao reverter constraints:', error.message);
-        }
+        // Não recria unique em celular/email/cpf
     }
 };
