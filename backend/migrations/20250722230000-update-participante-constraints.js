@@ -1,10 +1,10 @@
 'use strict';
 
 module.exports = {
-    up: async (queryInterface, Sequelize) => {
-        // Remover constraint unique do CPF se existir
-        try {
-            await queryInterface.sequelize.query(`
+  up: async (queryInterface, Sequelize) => {
+    // Remover constraint unique do CPF se existir
+    try {
+      await queryInterface.sequelize.query(`
         DO $$ 
         BEGIN
           IF EXISTS (
@@ -21,13 +21,13 @@ module.exports = {
           END IF;
         END $$;
       `);
-        } catch (error) {
-            console.log('Constraint CPF não encontrada ou já removida');
-        }
+    } catch (error) {
+      console.log('Constraint CPF não encontrada ou já removida');
+    }
 
-        // Remover constraint unique do celular se existir
-        try {
-            await queryInterface.sequelize.query(`
+    // Remover constraint unique do celular se existir
+    try {
+      await queryInterface.sequelize.query(`
         DO $$ 
         BEGIN
           IF EXISTS (
@@ -44,13 +44,13 @@ module.exports = {
           END IF;
         END $$;
       `);
-        } catch (error) {
-            console.log('Constraint CELULAR não encontrada ou já removida');
-        }
+    } catch (error) {
+      console.log('Constraint CELULAR não encontrada ou já removida');
+    }
 
-        // Remover constraint unique do email se existir
-        try {
-            await queryInterface.sequelize.query(`
+    // Remover constraint unique do email se existir
+    try {
+      await queryInterface.sequelize.query(`
         DO $$ 
         BEGIN
           IF EXISTS (
@@ -67,12 +67,12 @@ module.exports = {
           END IF;
         END $$;
       `);
-        } catch (error) {
-            console.log('Constraint EMAIL não encontrada ou já removida');
-        }
-    },
-
-    down: async (queryInterface, Sequelize) => {
-        // Não recria unique em celular/email/cpf
+    } catch (error) {
+      console.log('Constraint EMAIL não encontrada ou já removida');
     }
+  },
+
+  down: async (queryInterface, Sequelize) => {
+    // Não recria unique em celular/email/cpf
+  }
 };
