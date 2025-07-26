@@ -2,25 +2,30 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { FiCheck, FiClock, FiUpload, FiImage } from 'react-icons/fi';
 import api from '../services/api';
+import { buscarPagamentoPendente } from '../utils/pagamentoUtils';
 
 const ConfirmarPagamento = () => {
     const { participanteId } = useParams();
     const [participante, setParticipante] = useState(null);
+    const [pagamento, setPagamento] = useState(null);
     const [loading, setLoading] = useState(true);
     const [comprovante, setComprovante] = useState(null);
     const [enviando, setEnviando] = useState(false);
     const [sucesso, setSucesso] = useState(false);
 
     useEffect(() => {
-        carregarParticipante();
+        carregarParticipanteEPagamento();
     }, [participanteId]);
 
-    const carregarParticipante = async () => {
+    const carregarParticipanteEPagamento = async () => {
         try {
             const response = await api.get(`/participantes/${participanteId}`);
             setParticipante(response.data);
+            // Buscar pagamento pendente
+            const pagamentoPendente = await buscarPagamentoPendente(participanteId);
+            setPagamento(pagamentoPendente);
         } catch (error) {
-            console.error('Erro ao carregar participante:', error);
+            console.error('Erro ao carregar participante ou pagamento:', error);
         } finally {
             setLoading(false);
         }
@@ -111,12 +116,12 @@ const ConfirmarPagamento = () => {
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Números:</span>
-                                    <span className="font-medium">{participante.numerosReservados?.join(', ')}</span>
+                                    <span className="font-medium">{pagamento?.dadosPagamento?.numerosReservados?.join(', ') || '-'}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span>Valor Total:</span>
                                     <span className="font-medium text-green-600">
-                                        R$ {participante.valorTotal?.toFixed(2)}
+                                        R$ {pagamento?.dadosPagamento?.valorTotal ? Number(pagamento.dadosPagamento.valorTotal).toFixed(2) : '-'}
                                     </span>
                                 </div>
                             </div>
