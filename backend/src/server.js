@@ -140,7 +140,9 @@ app.use(cors({
         'http://localhost:5174',
         'https://sorteio-online.vercel.app',
         'https://*.vercel.app',
-        'https://sorteio-online-production.vercel.app'
+        'https://sorteio-online-production.vercel.app',
+        'https://www.sorteiocomproposito.com.br',
+        'https://sorteiocomproposito.com.br'
     ],
     credentials: true
 }));
