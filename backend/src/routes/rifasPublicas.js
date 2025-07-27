@@ -212,12 +212,13 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             return res.status(404).json({ message: 'Participante não encontrado para este celular' });
         }
 
-        // Buscar pagamentos aprovados desse participante e rifa
-        const pagamentos = await require('../models').Pagamento.findAll({
+        // Buscar pagamentos aprovados desse participante
+        const Pagamento = require('../models').Pagamento;
+        const Bilhete = require('../models').Bilhete;
+        const pagamentos = await Pagamento.findAll({
             where: {
                 participanteId: participante.id,
-                rifaId: rifaId,
-                status: 'aprovado' // ajuste se o status for diferente
+                status: 'aprovado'
             }
         });
 
@@ -234,6 +235,19 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
         });
 
         if (!numeros.length) {
+            return res.status(404).json({ message: 'Nenhum número encontrado para este celular' });
+        }
+
+        // Buscar bilhetes correspondentes aos números e à rifa
+        const bilhetes = await Bilhete.findAll({
+            where: {
+                numero: numeros,
+                rifaId: rifaId
+            },
+            attributes: ['numero']
+        });
+
+        if (!bilhetes.length) {
             return res.status(404).json({ message: 'Nenhum número encontrado para este celular nesta rifa' });
         }
 
@@ -249,9 +263,9 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
                 email: participante.email
             },
             rifa: rifa ? { id: rifa.id, titulo: rifa.titulo } : null,
-            bilhetes: numeros.map(numero => ({ numero })),
-            quantidadeBilhetes: numeros.length,
-            total: numeros.length // compatibilidade
+            bilhetes: bilhetes.map(b => ({ numero: b.numero })),
+            quantidadeBilhetes: bilhetes.length,
+            total: bilhetes.length // compatibilidade
         };
 
         res.json(resultado);
