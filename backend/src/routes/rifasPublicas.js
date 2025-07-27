@@ -219,12 +219,12 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             type: require('sequelize').QueryTypes.SELECT
         });
 
-        if (!bilhetes || bilhetes.length === 0) {
+
+        if (!Array.isArray(bilhetes) || !bilhetes[0]) {
             return res.status(404).json({
                 message: 'Nenhum número encontrado para este celular nesta rifa'
             });
         }
-
         // Proteção extra: log e checagem de campos
         if (!('participante_id' in bilhetes[0])) {
             console.error('participante_id não encontrado em bilhetes[0]:', bilhetes[0]);
