@@ -198,7 +198,10 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             return res.status(400).json({ error: 'Celular é obrigatório' });
         }
 
-        // Busca otimizada usando JOIN direto no SQL
+        // Normaliza o celular para conter apenas dígitos
+        const celularNumerico = String(celular).replace(/\D/g, '');
+
+        // Busca otimizada usando JOIN direto no SQL, comparando apenas dígitos
         const [bilhetes] = await require('../config/database').query(`
             SELECT 
                 b.id,
@@ -212,10 +215,10 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             FROM "Bilhetes" b
             INNER JOIN "Participantes" p ON b."participanteId" = p.id
             WHERE b."rifaId" = :rifaId 
-            AND p.celular = :celular
+            AND regexp_replace(p.celular, '[^0-9]', '', 'g') = :celularNumerico
             ORDER BY b.numero ASC
         `, {
-            replacements: { rifaId, celular },
+            replacements: { rifaId, celularNumerico },
             type: require('sequelize').QueryTypes.SELECT
         });
 
