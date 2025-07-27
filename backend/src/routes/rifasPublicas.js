@@ -225,6 +225,12 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             });
         }
 
+        // Proteção extra: log e checagem de campos
+        if (!('participante_id' in bilhetes[0])) {
+            console.error('participante_id não encontrado em bilhetes[0]:', bilhetes[0]);
+            return res.status(500).json({ error: 'Erro ao processar participante_id' });
+        }
+
         // Buscar título da rifa
         const rifa = await Rifa.findByPk(rifaId, { attributes: ['id', 'titulo'] });
 
