@@ -201,37 +201,40 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
         // Normaliza o celular para conter apenas dígitos
         const celularNumerico = String(celular).replace(/\D/g, '');
 
-        // Busca otimizada usando JOIN direto no SQL, comparando apenas dígitos
-        const [bilhetes] = await require('../config/database').query(`
-            SELECT 
-                b.id,
-                b.numero,
-                b.status,
-                b."dataVenda",
-                p.id as participante_id,
-                p.nome as participante_nome,
-                p.celular as participante_celular,
-                p.email as participante_email
-            FROM "Bilhetes" b
-            INNER JOIN "Participantes" p ON b."participanteId" = p.id
-            WHERE b."rifaId" = :rifaId 
-            AND regexp_replace(p.celular, '[^0-9]', '', 'g') = :celularNumerico
-            ORDER BY b.numero ASC
-        `, {
-            replacements: { rifaId, celularNumerico },
-            type: require('sequelize').QueryTypes.SELECT
+        // Buscar participante pelo celular
+        const participante = await Participante.findOne({
+            where: require('sequelize').where(
+                require('sequelize').fn('regexp_replace', require('sequelize').col('celular'), '[^0-9]', '', 'g'),
+                celularNumerico
+            )
+        });
+        if (!participante) {
+            return res.status(404).json({ message: 'Participante não encontrado para este celular' });
+        }
+
+        // Buscar pagamentos aprovados desse participante e rifa
+        const pagamentos = await require('../models').Pagamento.findAll({
+            where: {
+                participanteId: participante.id,
+                rifaId: rifaId,
+                status: 'aprovado' // ajuste se o status for diferente
+            }
         });
 
+        // Extrair números dos bilhetes do campo dadosPagamento
+        let numeros = [];
+        pagamentos.forEach(pag => {
+            let dados = pag.dadosPagamento;
+            if (typeof dados === 'string') {
+                try { dados = JSON.parse(dados); } catch { }
+            }
+            if (dados && Array.isArray(dados.numerosBilhetes)) {
+                numeros = numeros.concat(dados.numerosBilhetes);
+            }
+        });
 
-        if (!Array.isArray(bilhetes) || !bilhetes[0]) {
-            return res.status(404).json({
-                message: 'Nenhum número encontrado para este celular nesta rifa'
-            });
-        }
-        // Proteção extra: log e checagem de campos
-        if (!('participante_id' in bilhetes[0])) {
-            console.error('participante_id não encontrado em bilhetes[0]:', bilhetes[0]);
-            return res.status(500).json({ error: 'Erro ao processar participante_id' });
+        if (!numeros.length) {
+            return res.status(404).json({ message: 'Nenhum número encontrado para este celular nesta rifa' });
         }
 
         // Buscar título da rifa
@@ -240,20 +243,15 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
         // Formatar resposta
         const resultado = {
             participante: {
-                id: bilhetes[0].participante_id,
-                nome: bilhetes[0].participante_nome,
-                celular: bilhetes[0].participante_celular,
-                email: bilhetes[0].participante_email
+                id: participante.id,
+                nome: participante.nome,
+                celular: participante.celular,
+                email: participante.email
             },
             rifa: rifa ? { id: rifa.id, titulo: rifa.titulo } : null,
-            bilhetes: bilhetes.map(b => ({
-                id: b.id,
-                numero: b.numero,
-                status: b.status,
-                dataVenda: b.dataVenda
-            })),
-            quantidadeBilhetes: bilhetes.length,
-            total: bilhetes.length // compatibilidade
+            bilhetes: numeros.map(numero => ({ numero })),
+            quantidadeBilhetes: numeros.length,
+            total: numeros.length // compatibilidade
         };
 
         res.json(resultado);
