@@ -125,7 +125,7 @@ const usuariosRoutes = require('./routes/usuariosRoutes');
 const participantesRoutes = require('./routes/participantes');
 const participantesPublicosRoutes = require('./routes/participantesPublicos');
 const rifasRoutes = require('./routes/rifas');
-const rifasPublicasRoutes = require('./routes/rifasPublicas');
+const rifaspublicasRoutes = require('./routes/rifaspublicas');
 const bilhetesRoutes = require('./routes/bilhetes');
 const pagamentosRoutes = require('./routes/pagamentos');
 const pagamentosValidacaoRoutes = require('./routes/pagamentosValidacao');
@@ -157,7 +157,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.use('/api/auth', authRoutes);
 app.use('/api/usuarios', usuariosRoutes);
 app.use('/api/publico', participantesPublicosRoutes); // Rotas públicas primeiro
-app.use('/api/publico', rifasPublicasRoutes); // Rotas públicas primeiro
+app.use('/api/publico', rifaspublicasRoutes); // Rotas públicas primeiro
 app.use('/api/participantes', participantesRoutes);
 app.use('/api/rifas', rifasRoutes);
 app.use('/api/bilhetes', bilhetesRoutes);
