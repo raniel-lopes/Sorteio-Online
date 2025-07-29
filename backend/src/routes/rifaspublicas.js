@@ -229,8 +229,13 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             if (typeof dados === 'string') {
                 try { dados = JSON.parse(dados); } catch { }
             }
-            if (dados && Array.isArray(dados.numerosBilhetes)) {
-                numeros = numeros.concat(dados.numerosBilhetes);
+            if (dados) {
+                if (Array.isArray(dados.numerosBilhetes)) {
+                    numeros = numeros.concat(dados.numerosBilhetes);
+                }
+                if (Array.isArray(dados.numerosReservados)) {
+                    numeros = numeros.concat(dados.numerosReservados);
+                }
             }
         });
 
