@@ -189,6 +189,7 @@ router.post('/publica/:id/reservar', async (req, res) => {
 });
 
 // Rota para verificar números de um participante pelo celular - OTIMIZADA
+// Rota para verificar números de um participante pelo celular - CORRIGIDA
 router.post('/publica/:id/verificar-numeros', async (req, res) => {
     try {
         const { celular } = req.body;
@@ -198,79 +199,58 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             return res.status(400).json({ error: 'Celular é obrigatório' });
         }
 
-        // Normaliza o celular para conter apenas dígitos
+        // 1. Normaliza o celular para conter apenas dígitos
         const celularNumerico = String(celular).replace(/\D/g, '');
 
-        // Buscar participante pelo celular
+        // 2. Buscar participante pelo celular.
+        // Idealmente, a busca deveria considerar a rifaId para desambiguação,
+        // mas a lógica atual de criação de participante parece ser uma por rifa.
         const participante = await Participante.findOne({
             where: require('sequelize').where(
                 require('sequelize').fn('regexp_replace', require('sequelize').col('celular'), '[^0-9]', '', 'g'),
                 celularNumerico
             )
         });
+
         if (!participante) {
             return res.status(404).json({ message: 'Participante não encontrado para este celular' });
         }
 
-        // Buscar pagamentos aprovados desse participante
-        const Pagamento = require('../models').Pagamento;
-        const Bilhete = require('../models').Bilhete;
-        const pagamentos = await Pagamento.findAll({
-            where: {
-                participanteId: participante.id,
-                status: 'aprovado'
-            }
-        });
-
-        // Extrair números dos bilhetes do campo dadosPagamento
-        let numeros = [];
-        pagamentos.forEach(pag => {
-            let dados = pag.dadosPagamento;
-            if (typeof dados === 'string') {
-                try { dados = JSON.parse(dados); } catch { }
-            }
-            if (dados) {
-                if (Array.isArray(dados.numerosBilhetes)) {
-                    numeros = numeros.concat(dados.numerosBilhetes);
-                }
-                if (Array.isArray(dados.numerosReservados)) {
-                    numeros = numeros.concat(dados.numerosReservados);
-                }
-            }
-        });
-
-        if (!numeros.length) {
-            return res.status(404).json({ message: 'Nenhum número encontrado para este celular' });
-        }
-
-        // Buscar bilhetes correspondentes aos números e à rifa
+        // 3. Buscar TODOS os bilhetes do participante para ESTA rifa, independente do status
         const bilhetes = await Bilhete.findAll({
             where: {
-                numero: numeros,
+                participanteId: participante.id,
                 rifaId: rifaId
             },
-            attributes: ['numero']
+            attributes: ['numero', 'status'], // Selecionar número e status
+            order: [['numero', 'ASC']]
         });
 
         if (!bilhetes.length) {
             return res.status(404).json({ message: 'Nenhum número encontrado para este celular nesta rifa' });
         }
 
-        // Buscar título da rifa
-        const rifa = await Rifa.findByPk(rifaId, { attributes: ['id', 'titulo'] });
+        // 4. Determinar o status geral (o mais "avançado" encontrado)
+        let statusGeral = 'reservado';
+        if (bilhetes.some(b => b.status === 'vendido')) {
+            statusGeral = 'vendido';
+        }
+
+        // 5. Calcular valor total (opcional, mas bom ter)
+        const rifa = await Rifa.findByPk(rifaId, { attributes: ['valorBilhete'] });
+        const valorTotal = rifa ? (bilhetes.length * parseFloat(rifa.valorBilhete)).toFixed(2) : '0.00';
 
         // Formatar resposta
         const resultado = {
             participante: {
-                id: participante.id,
                 nome: participante.nome,
                 celular: participante.celular,
                 email: participante.email
             },
-            rifa: rifa ? { id: rifa.id, titulo: rifa.titulo } : null,
-            bilhetes: bilhetes.map(b => ({ numero: b.numero })),
-            quantidadeBilhetes: bilhetes.length,
-            total: bilhetes.length // compatibilidade
+            numeros: bilhetes.map(b => ({ numero: b.numero, status: b.status })),
+            totalNumeros: bilhetes.length,
+            valorTotal: valorTotal,
+            statusGeral: statusGeral
         };
 
         res.json(resultado);
