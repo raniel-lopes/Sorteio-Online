@@ -349,25 +349,52 @@ exports.excluirRifa = async (req, res) => {
             where: { rifaId: id, status: 'reservado' }
         });
 
-        if (bilhetesVendidos > 0) {
+        // Para rifas ativas, não permitir exclusão se houver bilhetes vendidos
+        if (rifa.status === 'ativa' && bilhetesVendidos > 0) {
             return res.status(400).json({
-                error: 'Não é possível excluir rifa com bilhetes vendidos'
+                error: 'Não é possível excluir rifa ativa com bilhetes vendidos. Encerre a rifa primeiro.'
             });
         }
 
+        // Para qualquer rifa, não permitir exclusão se houver bilhetes reservados
         if (bilhetesReservados > 0) {
             return res.status(400).json({
                 error: 'Não é possível excluir rifa com bilhetes reservados. Cancele as reservas primeiro.'
             });
         }
 
+        // Verificar se há pagamentos relacionados que precisam ser preservados
+        const pagamentosExistentes = await Pagamento.count({
+            where: { rifaId: id }
+        });
+
+        if (pagamentosExistentes > 0 && rifa.status !== 'encerrada') {
+            return res.status(400).json({
+                error: 'Não é possível excluir rifa com pagamentos registrados. Encerre a rifa primeiro.'
+            });
+        }
+
         // Excluir bilhetes primeiro
         await Bilhete.destroy({ where: { rifaId: id } });
+
+        // Excluir sorteios relacionados se existirem
+        await Sorteio.destroy({ where: { rifaId: id } });
+
+        // Para rifas encerradas, manter histórico de pagamentos mas remover a rifa
+        if (rifa.status === 'encerrada' && pagamentosExistentes > 0) {
+            // Apenas marcar como excluída ou remover referência
+            await Pagamento.update(
+                { rifaId: null },
+                { where: { rifaId: id } }
+            );
+        }
 
         // Excluir rifa
         await rifa.destroy();
 
-        res.status(200).json({ message: 'Rifa excluída com sucesso' });
+        res.status(200).json({
+            message: `Rifa ${rifa.status === 'encerrada' ? 'encerrada' : ''} excluída com sucesso`
+        });
     } catch (error) {
         console.error('❌ Erro ao excluir rifa:', error);
         res.status(500).json({ error: 'Erro ao excluir rifa' });
