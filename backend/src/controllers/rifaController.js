@@ -374,20 +374,87 @@ exports.excluirRifa = async (req, res) => {
             });
         }
 
-        // Excluir bilhetes primeiro
-        await Bilhete.destroy({ where: { rifaId: id } });
+        // Verificar se há participantes relacionados
+        const participantesRelacionados = await Participante.count({
+            where: { rifaId: id }
+        });
 
-        // Excluir sorteios relacionados se existirem
-        await Sorteio.destroy({ where: { rifaId: id } });
+        try {
+            // Excluir bilhetes primeiro (isso deve remover as associações com participantes)
+            await Bilhete.destroy({ where: { rifaId: id } });
 
-        // Para rifas encerradas, manter histórico de pagamentos mas remover a rifa
-        if (rifa.status === 'encerrada' && pagamentosExistentes > 0) {
-            // Apenas marcar como excluída ou remover referência
-            await Pagamento.update(
-                { rifaId: null },
-                { where: { rifaId: id } }
-            );
+            // Remover participantes relacionados à rifa se não tiverem outras rifas
+            if (participantesRelacionados > 0) {
+                // Remover apenas participantes que só participavam desta rifa
+                const participantesParaRemover = await Participante.findAll({
+                    where: { rifaId: id }
+                });
+
+                for (const participante of participantesParaRemover) {
+                    // Verificar se o participante tem outros bilhetes em outras rifas
+                    const outrosBilhetes = await Bilhete.count({
+                        where: {
+                            participanteId: participante.id,
+                            rifaId: { [Op.ne]: id }
+                        }
+                    });
+
+                    // Se não tem outros bilhetes, pode remover o participante
+                    if (outrosBilhetes === 0) {
+                        await participante.destroy();
+                    }
+                }
+            }
+
+            // Excluir sorteios relacionados se existirem
+            await Sorteio.destroy({ where: { rifaId: id } });
+
+            // Se há pagamentos, tentar diferentes abordagens dependendo do banco
+            if (pagamentosExistentes > 0 && rifa.status === 'encerrada') {
+                try {
+                    // Tentar primeiro: definir rifaId como null (se o campo permite)
+                    await Pagamento.update(
+                        { rifaId: null },
+                        { where: { rifaId: id } }
+                    );
+                } catch (updateError) {
+                    console.log('⚠️ Não foi possível definir rifaId como null, mantendo referência');
+                    // Se não conseguir, deixar a referência intacta
+                    // O banco deve ter CASCADE configurado ou permitir referências órfãs
+                }
+            }
+
+            // Excluir rifa
+            await rifa.destroy();
+
+        } catch (deleteError) {
+            // Se houver erro na exclusão, pode ser por constraints
+            console.error('❌ Erro durante exclusão:', deleteError);
+
+            // Tentar uma abordagem alternativa: apenas marcar como excluída
+            if (deleteError.name === 'SequelizeForeignKeyConstraintError') {
+                // Se for erro de constraint, tentar soft delete ou marcar como excluída
+                try {
+                    await rifa.update({
+                        status: 'excluida',
+                        titulo: `[EXCLUÍDA] ${rifa.titulo}`,
+                        dataFim: new Date() // Marcar como finalizada
+                    });
+
+                    return res.status(200).json({
+                        message: 'Rifa marcada como excluída devido a constraints do banco de dados'
+                    });
+                } catch (softDeleteError) {
+                    throw deleteError; // Re-lançar erro original
+                }
+            } else {
+                throw deleteError; // Re-lançar se não for erro de constraint
+            }
         }
+
+        // Para rifas encerradas com pagamentos, não remover a referência rifaId
+        // Deixar os pagamentos intactos para histórico, apenas excluir a rifa
+        // O banco deve permitir referências órfãs ou usar CASCADE/SET NULL
 
         // Excluir rifa
         await rifa.destroy();
@@ -397,7 +464,20 @@ exports.excluirRifa = async (req, res) => {
         });
     } catch (error) {
         console.error('❌ Erro ao excluir rifa:', error);
-        res.status(500).json({ error: 'Erro ao excluir rifa' });
+        console.error('❌ Stack trace:', error.stack);
+        console.error('❌ Error details:', {
+            name: error.name,
+            message: error.message,
+            sql: error.sql,
+            parent: error.parent
+        });
+
+        // Retornar erro mais específico para debug
+        res.status(500).json({
+            error: 'Erro ao excluir rifa',
+            details: error.message,
+            errorType: error.name
+        });
     }
 };
 
