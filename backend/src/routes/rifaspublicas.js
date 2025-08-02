@@ -188,8 +188,7 @@ router.post('/publica/:id/reservar', async (req, res) => {
     }
 });
 
-// Rota para verificar números de um participante pelo celular - OTIMIZADA
-// Rota para verificar números de um participante pelo celular - CORRIGIDA
+// Rota para verificar números de um participante pelo celular - VERSÃO ESTÁVEL
 router.post('/publica/:id/verificar-numeros', async (req, res) => {
     try {
         const { celular } = req.body;
@@ -199,30 +198,36 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             return res.status(400).json({ error: 'Celular é obrigatório' });
         }
 
-        // 1. Normaliza o celular para conter apenas dígitos
-        const celularNumerico = String(celular).replace(/\D/g, '');
+        // 1. Normalizar o celular removendo caracteres especiais
+        const celularLimpo = String(celular).replace(/\D/g, '');
 
-        // 2. Buscar participante pelo celular.
-        // Idealmente, a busca deveria considerar a rifaId para desambiguação,
-        // mas a lógica atual de criação de participante parece ser uma por rifa.
-        const participante = await Participante.findOne({
-            where: require('sequelize').where(
-                require('sequelize').fn('regexp_replace', require('sequelize').col('celular'), '[^0-9]', '', 'g'),
-                celularNumerico
-            )
+        // 2. Buscar todos os participantes da rifa e comparar manualmente
+        const participantes = await Participante.findAll({
+            where: { rifaId: rifaId },
+            attributes: ['id', 'nome', 'celular', 'email']
         });
 
-        if (!participante) {
+        // 3. Encontrar participante por comparação manual
+        let participanteEncontrado = null;
+        for (const p of participantes) {
+            const celularParticipante = String(p.celular || '').replace(/\D/g, '');
+            if (celularParticipante === celularLimpo) {
+                participanteEncontrado = p;
+                break;
+            }
+        }
+
+        if (!participanteEncontrado) {
             return res.status(404).json({ message: 'Participante não encontrado para este celular' });
         }
 
-        // 3. Buscar TODOS os bilhetes do participante para ESTA rifa, independente do status
+        // 4. Buscar bilhetes do participante nesta rifa
         const bilhetes = await Bilhete.findAll({
             where: {
-                participanteId: participante.id,
+                participanteId: participanteEncontrado.id,
                 rifaId: rifaId
             },
-            attributes: ['numero', 'status'], // Selecionar número e status
+            attributes: ['numero', 'status'],
             order: [['numero', 'ASC']]
         });
 
@@ -230,30 +235,25 @@ router.post('/publica/:id/verificar-numeros', async (req, res) => {
             return res.status(404).json({ message: 'Nenhum número encontrado para este celular nesta rifa' });
         }
 
-        // 4. Determinar o status geral (o mais "avançado" encontrado)
-        let statusGeral = 'reservado';
-        if (bilhetes.some(b => b.status === 'vendido')) {
-            statusGeral = 'vendido';
-        }
-
-        // 5. Calcular valor total (opcional, mas bom ter)
+        // 5. Calcular valor total
         const rifa = await Rifa.findByPk(rifaId, { attributes: ['valorBilhete'] });
         const valorTotal = rifa ? (bilhetes.length * parseFloat(rifa.valorBilhete)).toFixed(2) : '0.00';
 
-        // Formatar resposta
-        const resultado = {
+        // 6. Determinar status geral
+        const statusGeral = bilhetes.some(b => b.status === 'vendido') ? 'vendido' : 'reservado';
+
+        res.json({
             participante: {
-                nome: participante.nome,
-                celular: participante.celular,
-                email: participante.email
+                nome: participanteEncontrado.nome,
+                celular: participanteEncontrado.celular,
+                email: participanteEncontrado.email
             },
             numeros: bilhetes.map(b => ({ numero: b.numero, status: b.status })),
             totalNumeros: bilhetes.length,
             valorTotal: valorTotal,
             statusGeral: statusGeral
-        };
+        });
 
-        res.json(resultado);
     } catch (error) {
         console.error('Erro ao verificar números:', error);
         res.status(500).json({ error: 'Erro interno do servidor' });
