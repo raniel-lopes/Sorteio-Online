@@ -364,9 +364,19 @@ exports.excluirRifa = async (req, res) => {
         }
 
         // Verificar se há pagamentos relacionados que precisam ser preservados
-        const pagamentosExistentes = await Pagamento.count({
-            where: { rifaId: id }
+        // Como Pagamento não tem rifaId direto, verificar através dos bilhetes
+        const bilhetesIds = await Bilhete.findAll({
+            where: { rifaId: id },
+            attributes: ['id']
         });
+
+        const bilheteIdsArray = bilhetesIds.map(bilhete => bilhete.id);
+
+        const pagamentosExistentes = bilheteIdsArray.length > 0 ? await Pagamento.count({
+            where: {
+                bilheteId: bilheteIdsArray
+            }
+        }) : 0;
 
         if (pagamentosExistentes > 0 && rifa.status !== 'encerrada') {
             return res.status(400).json({
@@ -380,7 +390,7 @@ exports.excluirRifa = async (req, res) => {
         });
 
         try {
-            // Excluir bilhetes primeiro (isso deve remover as associações com participantes)
+            // Excluir bilhetes primeiro (isso pode afetar pagamentos relacionados)
             await Bilhete.destroy({ where: { rifaId: id } });
 
             // Remover participantes relacionados à rifa se não tiverem outras rifas
@@ -409,21 +419,6 @@ exports.excluirRifa = async (req, res) => {
             // Excluir sorteios relacionados se existirem
             await Sorteio.destroy({ where: { rifaId: id } });
 
-            // Se há pagamentos, tentar diferentes abordagens dependendo do banco
-            if (pagamentosExistentes > 0 && rifa.status === 'encerrada') {
-                try {
-                    // Tentar primeiro: definir rifaId como null (se o campo permite)
-                    await Pagamento.update(
-                        { rifaId: null },
-                        { where: { rifaId: id } }
-                    );
-                } catch (updateError) {
-                    console.log('⚠️ Não foi possível definir rifaId como null, mantendo referência');
-                    // Se não conseguir, deixar a referência intacta
-                    // O banco deve ter CASCADE configurado ou permitir referências órfãs
-                }
-            }
-
             // Excluir rifa
             await rifa.destroy();
 
@@ -451,13 +446,6 @@ exports.excluirRifa = async (req, res) => {
                 throw deleteError; // Re-lançar se não for erro de constraint
             }
         }
-
-        // Para rifas encerradas com pagamentos, não remover a referência rifaId
-        // Deixar os pagamentos intactos para histórico, apenas excluir a rifa
-        // O banco deve permitir referências órfãs ou usar CASCADE/SET NULL
-
-        // Excluir rifa
-        await rifa.destroy();
 
         res.status(200).json({
             message: `Rifa ${rifa.status === 'encerrada' ? 'encerrada' : ''} excluída com sucesso`
