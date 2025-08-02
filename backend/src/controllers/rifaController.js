@@ -340,6 +340,13 @@ exports.excluirRifa = async (req, res) => {
             return res.status(404).json({ error: 'Rifa não encontrada' });
         }
 
+        // VALIDAÇÃO DE SEGURANÇA: Só permitir exclusão de rifas canceladas ou encerradas
+        if (rifa.status !== 'cancelada' && rifa.status !== 'encerrada') {
+            return res.status(400).json({
+                error: 'Só é possível excluir rifas com status "cancelada" ou "encerrada". Altere o status da rifa primeiro.'
+            });
+        }
+
         // Verificar se tem bilhetes vendidos ou reservados
         const bilhetesVendidos = await Bilhete.count({
             where: { rifaId: id, status: 'vendido' }
@@ -349,38 +356,10 @@ exports.excluirRifa = async (req, res) => {
             where: { rifaId: id, status: 'reservado' }
         });
 
-        // Para rifas ativas, não permitir exclusão se houver bilhetes vendidos
-        if (rifa.status === 'ativa' && bilhetesVendidos > 0) {
-            return res.status(400).json({
-                error: 'Não é possível excluir rifa ativa com bilhetes vendidos. Encerre a rifa primeiro.'
-            });
-        }
-
         // Para qualquer rifa, não permitir exclusão se houver bilhetes reservados
         if (bilhetesReservados > 0) {
             return res.status(400).json({
                 error: 'Não é possível excluir rifa com bilhetes reservados. Cancele as reservas primeiro.'
-            });
-        }
-
-        // Verificar se há pagamentos relacionados que precisam ser preservados
-        // Como Pagamento não tem rifaId direto, verificar através dos bilhetes
-        const bilhetesIds = await Bilhete.findAll({
-            where: { rifaId: id },
-            attributes: ['id']
-        });
-
-        const bilheteIdsArray = bilhetesIds.map(bilhete => bilhete.id);
-
-        const pagamentosExistentes = bilheteIdsArray.length > 0 ? await Pagamento.count({
-            where: {
-                bilheteId: bilheteIdsArray
-            }
-        }) : 0;
-
-        if (pagamentosExistentes > 0 && rifa.status !== 'encerrada') {
-            return res.status(400).json({
-                error: 'Não é possível excluir rifa com pagamentos registrados. Encerre a rifa primeiro.'
             });
         }
 
