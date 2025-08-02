@@ -343,7 +343,10 @@ exports.excluirRifa = async (req, res) => {
         // VALIDAÇÃO DE SEGURANÇA: Só permitir exclusão de rifas canceladas ou encerradas
         if (rifa.status !== 'cancelada' && rifa.status !== 'encerrada') {
             return res.status(400).json({
-                error: 'Só é possível excluir rifas com status "cancelada" ou "encerrada". Altere o status da rifa primeiro.'
+                error: 'Não é possível excluir esta rifa',
+                message: `Para excluir uma rifa, ela deve estar com status "CANCELADA" ou "ENCERRADA". Esta rifa está como "${rifa.status.toUpperCase()}". Altere o status da rifa primeiro e tente novamente.`,
+                statusAtual: rifa.status,
+                statusPermitidos: ['cancelada', 'encerrada']
             });
         }
 
